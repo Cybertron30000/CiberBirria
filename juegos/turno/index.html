@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070d18">
+<meta name="description" content="Videojuego educativo de análisis de phishing y mensajes maliciosos.">
+<title>Turno de Ciberseguridad</title>
+<style>
+/* =========================================================
+   9. INTERFAZ RESPONSIVE Y ACCESIBILIDAD (estilos)
+   ========================================================= */
+:root{
+  --bg:#070d18; --panel:#111c30; --panel2:#18263f; --line:#2c3e60;
+  --teal:#2ec4b6; --green:#5cc98a; --yellow:#f2c14e; --amber:#f0a04b; --red:#ef7b7b;
+  --text:#eef2f7; --muted:#b3bfd1; --paper:#f8f6f1; --ink:#1b2333;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+  --pixel:"Courier New",ui-monospace,Menlo,Consolas,monospace;
+  --read:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--read);overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+#cv{position:fixed;left:0;top:0;display:block;touch-action:none;image-rendering:pixelated;image-rendering:crisp-edges}
+#probe{position:fixed;visibility:hidden;pointer-events:none;padding:var(--sat) var(--sar) var(--sab) var(--sal)}
+
+/* HUD de exploración */
+#hud{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:6px;visibility:hidden;
+  padding:calc(6px + var(--sat)) calc(8px + var(--sar)) 6px calc(8px + var(--sal));pointer-events:none}
+body.playing #hud{visibility:visible}
+#hud > *{pointer-events:auto}
+.chips,.hbtns{display:flex;gap:6px;align-items:center}
+.secbox{display:flex;gap:8px;align-items:center;background:rgba(8,14,26,.92);border:2px solid var(--line);border-radius:10px;padding:5px 9px;flex:1 1 150px;min-width:0;max-width:330px;box-shadow:0 0 0 2px #050a14}
+#hShield{width:30px;height:30px;image-rendering:pixelated;flex:none}
+.secin{flex:1;min-width:0}
+.slab{display:flex;justify-content:space-between;gap:8px;font:800 12px var(--pixel);white-space:nowrap}
+.slab b{color:var(--yellow)}
+.segs{display:flex;gap:2px;margin-top:4px}
+.segs i{flex:1;height:9px;background:#1d2a40;border-radius:1px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.25)}
+#hObj{order:3;flex:1 1 100%;background:rgba(8,14,26,.92);border:2px solid var(--line);border-radius:10px;padding:6px 10px;font:600 14px var(--read);line-height:1.3;box-shadow:0 0 0 2px #050a14}
+#hObj b{font:800 13px var(--pixel);color:var(--yellow)}
+.hbtns{margin-left:auto}
+@media (min-width:760px){ #hObj{order:1;flex:1 1 auto;width:auto;margin:0 4px} .hbtns{order:2;margin-left:0} }
+@media (max-height:420px){ #hObj{display:none} }
+.chip{background:rgba(8,14,26,.88);border:2px solid var(--line);border-radius:7px;padding:5px 8px;font:700 13px var(--pixel);white-space:nowrap}
+.chip b{color:var(--yellow)}
+.hbtn{background:rgba(8,14,26,.92);border:2px solid var(--line);border-radius:9px;min-height:44px;min-width:44px;padding:4px 10px;font:700 13px var(--pixel);display:inline-flex;align-items:center;gap:5px}
+.hbtn:active{transform:translateY(1px)}
+#prompt{position:fixed;left:50%;top:calc(var(--hudh,60px) + 6px);transform:translateX(-50%);z-index:5;display:none;max-width:92vw;
+  background:rgba(8,14,26,.94);border:2px solid var(--teal);border-radius:9px;padding:7px 12px;font:700 14px var(--pixel);text-align:center;pointer-events:none}
+body.playing #prompt.on{display:block}
+#prompt kbd{background:var(--yellow);color:#111;border-radius:4px;padding:0 5px;font:700 13px var(--pixel)}
+#prompt small{display:block;color:var(--muted);font:600 12px var(--read);margin-top:2px}
+
+/* Controles táctiles */
+#joy,#act{display:none}
+body.playing.touch #joy,body.playing.touch #act{display:block}
+#joy{position:fixed;z-index:6;left:calc(18px + var(--sal));bottom:calc(24px + var(--sab));width:136px;height:136px;border-radius:50%;
+  background:rgba(18,32,56,.6);border:3px solid rgba(46,196,182,.5);touch-action:none}
+#joy::after{content:"Mover";position:absolute;left:0;right:0;bottom:-20px;text-align:center;font:700 11px var(--pixel);color:var(--muted)}
+#knob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;background:rgba(46,196,182,.8);border:3px solid #c8f5ef;pointer-events:none}
+#act{position:fixed;z-index:6;right:calc(18px + var(--sar));bottom:calc(32px + var(--sab));width:108px;height:108px;border-radius:50%;
+  background:rgba(40,32,12,.85);border:3px solid var(--yellow);font:800 13px var(--pixel);color:var(--yellow);touch-action:manipulation;padding:0}
+#act.idle{opacity:.55;border-color:#7d6a3a}
+#act span{display:block;font-size:26px;line-height:1}
+
+/* Diálogo */
+#dlg{position:fixed;z-index:15;left:0;right:0;bottom:0;display:none;padding:0 calc(10px + var(--sar)) calc(12px + var(--sab)) calc(10px + var(--sal))}
+#dlg.on{display:block}
+.dbox{max-width:640px;margin:0 auto;background:var(--panel);border:3px solid var(--teal);border-radius:12px;padding:14px;display:grid;grid-template-columns:56px 1fr;gap:12px;box-shadow:0 0 0 3px #050a14}
+#dlgAv{width:56px;height:56px;image-rendering:pixelated;background:#0b1424;border:2px solid var(--line);border-radius:8px}
+#dlgWho{font:800 14px var(--pixel);color:var(--teal)}
+#dlgText{font-size:17px;line-height:1.5;margin:4px 0 10px}
+.dacts{grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end}
+
+/* Botones generales */
+.btn{min-height:48px;padding:10px 16px;border-radius:10px;border:3px solid var(--line);background:var(--panel2);font-weight:700;font-size:16px}
+.btn.pri{background:#0f3b37;border-color:var(--teal)}
+.btn.warn{background:#3a1d1d;border-color:var(--red)}
+.btn.block{display:block;width:100%}
+.btn:active{transform:translateY(1px)}
+.btn[disabled]{opacity:.45;cursor:default}
+
+/* Pantallas superpuestas */
+.screen{position:fixed;inset:0;z-index:20;display:none;background:rgba(4,8,16,.82);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:calc(16px + var(--sat)) calc(14px + var(--sar)) calc(18px + var(--sab)) calc(14px + var(--sal))}
+.screen.on{display:block}
+.box{max-width:580px;margin:0 auto;background:var(--panel);border:3px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 0 0 3px #050a14,0 14px 40px rgba(0,0,0,.5)}
+.box h2{font:800 22px var(--pixel);margin:0 0 6px;color:var(--yellow)}
+.box h3{font:800 17px var(--pixel);margin:16px 0 6px;color:var(--teal)}
+.box p,.box li{font-size:16px;line-height:1.55}
+.sub{color:var(--muted);margin:0 0 12px}
+.stack-btns{display:grid;gap:10px;margin-top:14px}
+#menu{background:radial-gradient(ellipse at 50% 30%,rgba(10,30,50,.55),rgba(3,6,12,.9))}
+.logo{text-align:center;margin:8px 0 18px}
+.logo .t1{font:800 clamp(20px,6vw,30px) var(--pixel);letter-spacing:3px;color:var(--teal);text-shadow:3px 3px 0 #08232a}
+.logo .t2{font:800 clamp(26px,9vw,46px) var(--pixel);letter-spacing:2px;color:var(--yellow);text-shadow:4px 4px 0 #3a2a05;line-height:1.05}
+.logo .t3{color:var(--muted);margin-top:8px;font-size:15px}
+#logoCv{width:72px;height:72px;image-rendering:pixelated;display:block;margin:0 auto 8px}
+.foot{color:var(--muted);font-size:13px;text-align:center;margin-top:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.row label{font-size:16px}
+.row input[type=checkbox]{width:28px;height:28px;accent-color:var(--teal)}
+.row input[type=range]{width:min(200px,45vw);accent-color:var(--teal);height:32px}
+.row select{min-height:44px;background:var(--panel2);border:2px solid var(--line);border-radius:8px;padding:4px 8px}
+.howto li{margin-bottom:8px}
+.howto .k{display:inline-block;background:var(--panel2);border:2px solid var(--line);border-radius:5px;padding:0 6px;font:700 13px var(--pixel)}
+
+/* Carpeta del turno */
+.paper{background:var(--paper);color:var(--ink);border-color:#c9b98f}
+.paper h2{color:#7a4b00}
+.paper .sub{color:#5b6475}
+.notes{padding-left:0;list-style:none;margin:0}
+.notes li{border-bottom:1px dashed #cdbf98;padding:9px 0}
+
+/* Terminal (computadoras) */
+#term{padding:0;background:rgba(4,8,16,.55);overflow:hidden}
+#term.on{display:flex;justify-content:center}
+.tbox{position:relative;width:100%;max-width:800px;height:100%;display:flex;flex-direction:column;background:var(--panel);overflow:hidden}
+@media (min-width:860px) and (min-height:620px){
+  .tbox{height:min(94vh,900px);margin:auto;border:3px solid var(--line);border-radius:16px;box-shadow:0 0 0 3px #050a14,0 18px 50px rgba(0,0,0,.6)}
+}
+.thead{display:flex;align-items:center;gap:8px;padding:calc(8px + var(--sat)) calc(10px + var(--sar)) 8px calc(10px + var(--sal));border-bottom:2px solid var(--line);background:#0c1527}
+.thead .ttl{flex:1;min-width:0}
+.thead .ttl b{display:block;font:800 15px var(--pixel);color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.thead .ttl small{display:block;color:var(--muted);font-size:13px}
+.dots{display:flex;gap:4px;margin-top:3px}
+.dots i{width:10px;height:10px;border-radius:2px;border:2px solid var(--line);display:block}
+.dots i.done{background:var(--muted);border-color:var(--muted)}
+.dots i.cur{border-color:var(--yellow)}
+.tbody{flex:1;display:flex;flex-direction:column;min-height:0}
+.tmain{flex:1;position:relative;min-height:0}
+.tfoot{display:grid;gap:8px;padding:10px calc(10px + var(--sar)) calc(10px + var(--sab)) calc(10px + var(--sal));border-top:2px solid var(--line);background:#0c1527}
+@media (orientation:landscape) and (max-height:540px){
+  .tbody{flex-direction:row}
+  .tfoot{width:min(250px,36vw);border-top:0;border-left:2px solid var(--line);align-content:center;padding:10px calc(10px + var(--sar)) calc(10px + var(--sab)) 10px}
+  .tfoot .drow{grid-template-columns:1fr}
+  .tfoot .irow{grid-template-columns:1fr}
+  .tfoot .ibtn{min-height:44px}
+  .tfoot .dbtn{min-height:50px}
+  .tfoot{gap:6px}
+  .thead{padding-left:calc(10px + var(--sal))}
+}
+.scroll{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:14px}
+.ibtn{min-height:46px;border-radius:10px;border:2px solid var(--line);background:var(--panel2);font-weight:700;font-size:16px}
+.drow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dbtn{min-height:58px;border-radius:12px;border:3px solid;font-weight:800;font-size:16px;padding:6px 8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.dbtn.l{background:#2b2314;border-color:var(--amber);color:#ffe1b8}
+.dbtn.r{background:#0f302d;border-color:var(--teal);color:#c9fbf4}
+.dbtn.hot{filter:brightness(1.35);transform:scale(1.03)}
+.dbtn[disabled],.ibtn[disabled]{opacity:.4}
+.khint{text-align:center;color:var(--muted);font-size:12px}
+body.touch .khint{display:none}
+
+/* Tarjetas */
+.stack{position:absolute;inset:12px 12px 12px 12px}
+.ghost{position:absolute;inset:8px 6px -4px 6px;background:#d9d5cb;border-radius:14px;opacity:.55}
+.card{position:absolute;inset:0;background:var(--paper);color:var(--ink);border-radius:14px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;box-shadow:0 5px 0 #0a1222;font-size:16px;line-height:1.55;cursor:grab}
+.card.dragging{cursor:grabbing}
+.card.anim{transition:transform .26s ease-out,opacity .26s ease-out}
+.stamp{position:absolute;top:16px;z-index:4;padding:6px 12px;border:3px solid;border-radius:8px;font:800 17px var(--pixel);opacity:0;pointer-events:none;background:rgba(255,255,255,.95)}
+.stamp.l{left:14px;color:#9a5608;border-color:#9a5608;transform:rotate(-7deg)}
+.stamp.r{right:14px;color:#0f6c63;border-color:#0f6c63;transform:rotate(7deg)}
+.cin{padding:16px 16px 22px}
+.ctag{display:flex;justify-content:space-between;gap:8px;font:700 12px var(--pixel);color:#5b6475;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.mhead{display:flex;gap:10px;align-items:center}
+.avatar{flex:none;width:42px;height:42px;border-radius:9px;display:grid;place-items:center;font:800 14px var(--pixel);color:#fff}
+.mfrom{font-weight:800;font-size:17px;line-height:1.25}
+.mmeta{font-size:14px;color:#566179}
+.msub{font-size:18px;margin:14px 0 8px;line-height:1.3}
+.mbody p{margin:0 0 10px}
+.mbody ul{margin:0 0 10px;padding-left:20px}
+.attach{display:flex;gap:10px;align-items:center;border:2px solid #cfd5df;border-radius:9px;padding:8px 10px;margin:10px 0;background:#fff}
+.fileico{flex:none;width:32px;height:38px;background:#e8ebf1;border:2px solid #98a2b5;border-radius:3px 9px 3px 3px;font:800 9px var(--pixel);display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;color:#3b4457}
+.attach b{display:block;overflow-wrap:anywhere;font-size:15px}
+.attach small,.inert{font-size:13px;color:#566179}
+.mbtn{display:inline-block;background:#2b4c7e;color:#fff;border-radius:9px;padding:10px 18px;font-weight:800;margin:6px 0 2px}
+.endm{text-align:center;color:#8a93a5;font-size:13px;margin-top:14px}
+.bar{background:#e4e7ee;border-radius:8px;padding:6px 10px;font-size:14px;color:#3b4457;margin-bottom:12px;overflow-wrap:anywhere}
+.apph{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.appico{flex:none;width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font:800 18px var(--pixel);color:#fff;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2)}
+.appt{font-weight:800;font-size:18px;line-height:1.25}
+.apps{font-size:14px;color:#566179}
+.rate{font-size:14px;color:#3b4457;margin:-2px 0 10px}
+.blk{margin:10px 0}
+.blk h5{margin:0 0 4px;font-size:15px}
+.blk ul{margin:0;padding-left:20px}
+.blk li{margin-bottom:3px}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:15px}
+.meta span:nth-child(odd){color:#566179}
+.alertx{border:3px solid #b03030;background:#fff3f0;border-radius:10px;padding:12px;margin:10px 0}
+.alertx b{display:block;color:#8a1c1c;font-size:17px;margin-bottom:4px}
+.alertsys{border:2px solid #7d8799;background:#eef1f6;border-radius:10px;padding:12px;margin:10px 0}
+.alertsys b{display:block;margin-bottom:4px}
+.mock{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.mock span{background:#2b4c7e;color:#fff;border-radius:8px;padding:7px 14px;font-weight:700;font-size:15px}
+.mock span.alt{background:#c9ced8;color:#1b2333}
+.quote{font-style:italic;color:#3b4457;border-left:4px solid #c9ced8;padding-left:10px}
+.adban{border:1px dashed #98a2b5;border-radius:8px;padding:8px;font-size:14px;background:#fff}
+.adban em{font-style:normal;font-weight:800;background:#ffe9a8;padding:0 5px;border-radius:4px;margin-right:6px}
+
+/* Inspección */
+#insp{position:absolute;inset:0;z-index:10;display:none;flex-direction:column;background:var(--panel)}
+#insp.on{display:flex}
+.ihead{display:flex;align-items:center;gap:10px;padding:calc(10px + var(--sat)) calc(12px + var(--sar)) 10px calc(12px + var(--sal));border-bottom:2px solid var(--line);background:#0c1527}
+.ihead b{flex:1;font:800 16px var(--pixel);color:var(--yellow)}
+.ibody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px calc(14px + var(--sar)) calc(16px + var(--sab)) calc(14px + var(--sal))}
+.ibody dl{margin:0}
+.ibody dt{font:700 13px var(--pixel);color:var(--teal);margin-top:12px;text-transform:uppercase}
+.ibody dd{margin:3px 0 0;font-size:16px;line-height:1.5;word-break:break-word;background:#0c1527;border:1px solid var(--line);border-radius:8px;padding:8px 10px;white-space:pre-line}
+.ibody .note{color:var(--muted);font-size:14px;margin:0 0 4px}
+
+/* Retroalimentación */
+.fb{color:var(--text)}
+.verdict{display:flex;gap:12px;align-items:center;border-radius:12px;padding:12px;border:3px solid}
+.verdict.ok{background:#0f2f22;border-color:var(--green)}
+.verdict.ko{background:#341818;border-color:var(--red)}
+.verdict .vi{font:800 30px var(--pixel)}
+.verdict b{font-size:19px}
+.verdict small{display:block;color:var(--muted);font-size:14px}
+.fbrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0}
+.fbrow div{background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:8px 10px}
+.fbrow small{display:block;color:var(--muted);font-size:13px}
+.fbrow b{font-size:16px}
+.fb h4{font:800 15px var(--pixel);color:var(--yellow);margin:14px 0 6px}
+.fb ul{margin:0;padding-left:20px}
+.fb li,.fb p{font-size:16px;line-height:1.55}
+.warnbox{background:#3a1d1d;border:2px solid var(--red);border-radius:10px;padding:10px;margin:10px 0;font-size:15px}
+.brief p{font-size:16px;line-height:1.6}
+.brief .big{font:800 20px var(--pixel);color:var(--yellow);margin:0 0 8px}
+.tut{background:var(--panel2);border:2px dashed var(--line);border-radius:12px;padding:12px;margin-top:12px}
+.tut ol{margin:6px 0 0;padding-left:22px}
+.tut li{margin-bottom:6px;font-size:15px}
+
+/* Resultados */
+.res-num{font:800 44px var(--pixel);color:var(--yellow);text-align:center;margin:6px 0}
+.badge{text-align:center;border:3px solid;border-radius:12px;padding:14px;margin:8px 0 12px}
+.badge b{display:block;font:800 22px var(--pixel);letter-spacing:1px}
+.badge.protegida{border-color:var(--green);background:#0f2f22;color:#bff0d3}
+.badge.moderada{border-color:var(--yellow);background:#33290d;color:#ffe9a8}
+.badge.critico{border-color:var(--red);background:#341818;color:#ffd0d0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.stats div{background:var(--panel2);border:2px solid var(--line);border-radius:10px;padding:10px}
+.stats small{display:block;color:var(--muted);font-size:13px}
+.stats b{font:800 22px var(--pixel)}
+.lessons{list-style:none;padding:0;margin:0}
+.lessons li{padding:8px 0;border-bottom:1px solid var(--line);font-size:15px;line-height:1.5}
+.ok-t{color:var(--green);font-weight:800}
+.ko-t{color:var(--red);font-weight:800}
+details.rev{background:var(--panel2);border:2px solid var(--line);border-radius:10px;margin:8px 0;padding:0 12px}
+details.rev summary{cursor:pointer;padding:12px 0;font-weight:700;font-size:16px;min-height:44px;list-style-position:outside}
+details.rev p{margin:6px 0;font-size:15px}
+details.rev ul{margin:4px 0 12px;padding-left:20px;font-size:15px}
+
+/* Avisos */
+#toast,#cap{position:fixed;left:50%;transform:translateX(-50%);z-index:60;max-width:min(92vw,520px);text-align:center;pointer-events:none;opacity:0;transition:opacity .25s}
+#toast{bottom:calc(24px + var(--sab));background:rgba(8,14,26,.96);border:2px solid var(--yellow);border-radius:10px;padding:9px 14px;font-size:15px;line-height:1.4}
+#cap{top:calc(8px + var(--sat));background:rgba(0,0,0,.85);border-radius:8px;padding:5px 12px;font:700 13px var(--pixel);color:#fff}
+#toast.on,#cap.on{opacity:1}
+body.touch.portrait #toast{bottom:calc(200px + var(--sab))}
+body.touch:not(.portrait) #toast{max-width:calc(100vw - 360px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+body.reduce *{transition:none!important;animation:none!important}
+.pop{position:fixed;left:50%;top:36%;z-index:65;transform:translate(-50%,0);font:800 30px var(--pixel);background:rgba(5,10,20,.88);border:2px solid currentColor;border-radius:12px;padding:4px 14px;pointer-events:none;text-shadow:3px 3px 0 #050a14;animation:popa 1.3s ease-out forwards;white-space:nowrap}
+.pop.p{color:var(--green)} .pop.n{color:var(--red)}
+@keyframes popa{0%{opacity:0;transform:translate(-50%,14px) scale(.7)}15%{opacity:1;transform:translate(-50%,0) scale(1.12)}100%{opacity:0;transform:translate(-50%,-64px)}}
+.peek{position:absolute;left:8px;right:8px;bottom:8px;z-index:5;background:#0c1527;color:#eef2f7;border:2px solid var(--teal);border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.4;overflow-wrap:anywhere;opacity:0;transition:opacity .2s;pointer-events:none}
+.peek.on{opacity:1}
+[data-peek]{cursor:help;text-decoration:underline dotted 2px;text-underline-offset:3px}
+.mbtn[data-peek]{text-decoration:none}
+.irow{display:grid;grid-template-columns:1fr auto;gap:8px}
+.irow #bGuide{padding:0 14px}
+.mk{border-radius:4px;padding:0 2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.mk.bad{background:rgba(231,111,111,.22);outline:2px dashed #c0392b}
+.mk.ok{background:rgba(92,201,138,.22);outline:2px dashed #1f8a55}
+.mk.info{background:rgba(242,193,78,.3);outline:2px dashed #a67c12}
+.mk .tip{display:inline-block;margin-left:5px;font:700 11px var(--pixel);color:#fff;border-radius:4px;padding:1px 5px;vertical-align:1px;white-space:normal;line-height:1.3}
+.mk.bad .tip{background:#b03030} .mk.ok .tip{background:#1f7a4c} .mk.info .tip{background:#8a6410}
+.review-card{background:var(--paper);color:var(--ink);border-radius:12px;font-size:15px;line-height:1.6;margin:6px 0 4px}
+.review-card .cin{padding:12px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:2px 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.guide li{margin-bottom:8px;font-size:16px;line-height:1.5}
+.rank{text-align:center;font-size:16px;margin:0 0 10px}
+.rank b{color:var(--yellow);font-family:var(--pixel)}
+@media (max-width:360px){ .hbtn{padding:4px 7px;font-size:12px} .chip{padding:4px 6px;font-size:12px} .dbtn{font-size:15px} }
+</style>
+</head>
+<body>
+<noscript><p style="padding:20px">Este juego necesita JavaScript activado.</p></noscript>
+<canvas id="cv" aria-label="Oficina Nodo Faro, vista superior" role="img"></canvas>
+<div id="probe"></div>
+
+<!-- HUD de exploración -->
+<div id="hud">
+  <div class="secbox" role="group" aria-label="Estado de la oficina">
+    <canvas id="hShield" width="15" height="15" aria-hidden="true"></canvas>
+    <div class="secin"><div class="slab"><span>SEGURIDAD <b id="hSecN">70</b></span><span id="hHits" title="Aciertos">✔ <b>0</b>/12</span></div><div class="segs" id="hSegs" aria-hidden="true"></div></div>
+  </div>
+  <div id="hObj"><span aria-hidden="true">🚩</span> <b>OBJETIVO:</b> <span id="hObjT"></span></div>
+  <div class="hbtns">
+    <button class="hbtn" id="hNotes" aria-label="Abrir la Carpeta del turno">📁 Notas</button>
+    <button class="hbtn" id="hPause" aria-label="Pausar el juego">⏸ Pausa</button>
+  </div>
+</div>
+<div id="prompt" role="status" aria-live="polite"></div>
+<div id="joy" aria-label="Joystick para moverse"><div id="knob"></div></div>
+<button id="act" aria-label="Interactuar"><span>✋</span>Interactuar</button>
+
+<!-- Diálogo -->
+<div id="dlg" role="dialog" aria-modal="false" aria-labelledby="dlgWho">
+  <div class="dbox">
+    <canvas id="dlgAv" width="16" height="16" aria-hidden="true"></canvas>
+    <div><div id="dlgWho">Marta</div><div id="dlgText" aria-live="polite"></div></div>
+    <div class="dacts">
+      <button class="btn" id="dlgSkip">Saltar</button>
+      <button class="btn pri" id="dlgNext">Siguiente ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- Menú principal -->
+<div class="screen" id="menu" role="dialog" aria-label="Menú principal">
+  <div class="box" style="background:rgba(17,28,48,.94)">
+    <div class="logo">
+      <canvas id="logoCv" width="18" height="18" aria-hidden="true"></canvas>
+      <div class="t1">TURNO DE</div>
+      <div class="t2">CIBER&shy;SEGURIDAD</div>
+      <div class="t3">Tu primer turno en la oficina Nodo Faro</div>
+    </div>
+    <div class="stack-btns">
+      <button class="btn pri block" id="mNew">▶ Nueva partida</button>
+      <button class="btn block" id="mCont" hidden>⟳ Continuar</button>
+      <button class="btn block" id="mHow">❓ Cómo jugar</button>
+      <button class="btn block" id="mSet">⚙ Configuración</button>
+    </div>
+    <div id="mConfirm" hidden style="margin-top:14px" class="warnbox">
+      <p style="margin:0 0 10px">Ya tienes una partida guardada. Si empiezas una nueva, se reiniciará tu progreso.</p>
+      <div class="drow"><button class="btn" id="mNo">Cancelar</button><button class="btn warn" id="mYes">Empezar de nuevo</button></div>
+    </div>
+    <p class="foot">Experiencia 100 % simulada. Todas las empresas, personas y dominios (.test) son ficticios.</p>
+  </div>
+</div>
+
+<!-- Cómo jugar -->
+<div class="screen" id="howto" role="dialog" aria-label="Cómo jugar">
+  <div class="box howto">
+    <h2>❓ Cómo jugar</h2>
+    <p class="sub">Eres Alex, analista nuevo del Nodo Faro. Revisa 12 casos en dos computadoras.</p>
+    <h3>1. Muévete por la oficina</h3>
+    <ul><li>Celular/tableta: arrastra el <b>joystick</b> de abajo a la izquierda.</li><li>Teclado: <span class="k">W A S D</span> o las <span class="k">flechas</span>.</li></ul>
+    <h3>2. Acércate e interactúa</h3>
+    <ul><li>Cuando aparezca el aviso, pulsa <b>Interactuar</b> (abajo a la derecha) o la tecla <span class="k">E</span>.</li><li>Puedes hablar con Marta y leer la pizarra (Carpeta del turno).</li></ul>
+    <h3>3. Analiza cada tarjeta</h3>
+    <ul><li>Lee el contenido completo; desliza hacia arriba o abajo para ver todo.</li><li>Pulsa <b>Inspeccionar detalles</b> (o <span class="k">I</span>): verás la dirección completa, el destino real de botones y el contexto.</li><li>En los correos, toca (o pasa el cursor sobre) el <b>remitente</b> o el <b>botón</b> para ver adónde apunta realmente, sin abrir nada.</li><li><b>💡 Guía</b> (o <span class="k">G</span>) resume las señales que debes revisar.</li></ul>
+    <h3>4. Decide</h3>
+    <ul><li>Arrastra la tarjeta a la <b>izquierda</b> = sospechoso / spam / phishing.</li><li>Arrastra a la <b>derecha</b> = legítimo / seguro.</li><li>O usa los botones grandes, o las teclas <span class="k">←</span> <span class="k">→</span>.</li></ul>
+    <h3>5. Aprende</h3>
+    <ul><li>Tras cada decisión verás las señales <b>resaltadas dentro del propio mensaje</b>, las pistas clave y qué hacer en la vida real.</li><li>La <b>seguridad de la oficina</b> (0-100) baja mucho si aceptas como seguro algo peligroso.</li></ul>
+    <p>Pausa: botón <b>Pausa</b> o teclas <span class="k">Esc</span> / <span class="k">P</span>.</p>
+    <div class="stack-btns"><button class="btn pri block" data-close="howto">Volver</button></div>
+  </div>
+</div>
+
+<!-- Configuración -->
+<div class="screen" id="settings" role="dialog" aria-label="Configuración">
+  <div class="box">
+    <h2>⚙ Configuración</h2>
+    <div class="row"><label for="sVol">Volumen</label><input type="range" id="sVol" min="0" max="100" step="5"></div>
+    <div class="row"><label for="sMute">Silenciar sonido</label><input type="checkbox" id="sMute"></div>
+    <div class="row"><label for="sCap">Subtítulos de efectos de sonido</label><input type="checkbox" id="sCap"></div>
+    <div class="row"><label for="sRed">Reducir movimiento</label><input type="checkbox" id="sRed"></div>
+    <div class="row"><label for="sTouch">Controles táctiles</label>
+      <select id="sTouch"><option value="auto">Automático</option><option value="on">Mostrar siempre</option><option value="off">Ocultar</option></select></div>
+    <p class="sub" id="sSave" style="margin-top:12px"></p>
+    <div class="stack-btns"><button class="btn pri block" data-close="settings">Volver</button></div>
+  </div>
+</div>
+
+<!-- Pausa -->
+<div class="screen" id="pause" role="dialog" aria-label="Pausa">
+  <div class="box">
+    <h2>⏸ Pausa</h2>
+    <p class="sub">Tu progreso se guarda automáticamente.</p>
+    <div class="stack-btns">
+      <button class="btn pri block" id="pResume">▶ Reanudar</button>
+      <button class="btn block" id="pNotes">📁 Carpeta del turno</button>
+      <button class="btn block" id="pFinal" hidden>📊 Ver informe del turno</button>
+      <button class="btn block" id="pHow">❓ Cómo jugar</button>
+      <button class="btn block" id="pSet">⚙ Configuración</button>
+      <button class="btn block" id="pMenu">⌂ Volver al menú principal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Carpeta del turno -->
+<div class="screen" id="notes" role="dialog" aria-label="Carpeta del turno">
+  <div class="box paper">
+    <h2>📁 Carpeta del turno</h2>
+    <p class="sub">Viernes 20 de noviembre · Oficina Nodo Faro · Turno nocturno</p>
+    <ul class="notes" id="notesList"></ul>
+    <div class="stack-btns"><button class="btn pri block" data-close="notes" style="color:#fff">Cerrar carpeta</button></div>
+  </div>
+</div>
+
+<!-- Terminal -->
+<div class="screen" id="term" role="dialog" aria-labelledby="tTitle">
+  <div class="tbox">
+    <div class="thead">
+      <button class="hbtn" id="tBack" aria-label="Volver a la oficina">◀ Volver</button>
+      <div class="ttl"><b id="tTitle">Centro de Mensajes</b><small id="tSub"></small><div class="dots" id="tDots" aria-hidden="true"></div></div>
+      <button class="hbtn" id="tPause" aria-label="Pausar">⏸ Pausa</button>
+    </div>
+    <div class="tbody">
+      <div class="tmain" id="tMain"></div>
+      <div class="tfoot" id="tFoot"></div>
+    </div>
+    <div id="insp" role="dialog" aria-label="Inspeccionar detalles">
+      <div class="ihead"><b id="iTitle">🔍 Inspeccionar detalles</b><button class="btn" id="iClose">Cerrar</button></div>
+      <div class="ibody" id="iBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Informe final -->
+<div class="screen" id="final" role="dialog" aria-label="Informe del turno"><div class="box" id="finalBox"></div></div>
+<!-- Revisión de casos -->
+<div class="screen" id="review" role="dialog" aria-label="Revisión de los 12 casos"><div class="box" id="reviewBox"></div></div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="cap" aria-live="polite"></div>
+
+<script>
+'use strict';
+(function(){
+/* =========================================================
+   1. CONFIGURACIÓN Y ESTADO DEL JUEGO
+   ========================================================= */
+const TILE = 16, MAP_W = 14, MAP_H = 18, WW = MAP_W*TILE, WH = MAP_H*TILE;
+const SAVE_KEY = 'turnoCiber.save.v1', SET_KEY = 'turnoCiber.settings.v1';
+const SPEED = 72; // píxeles del mundo por segundo
+const DANGEROUS = new Set(['phishing','estafa','malicioso','scareware','adware','malware']);
+const CAT_LABEL = {
+  legitimo:'Legítimo', spam:'Spam (publicidad no solicitada)', phishing:'Phishing',
+  estafa:'Phishing / estafa', malicioso:'Mensaje malicioso', scareware:'Engaño dañino (falsa alerta)',
+  adware:'Adware (software no deseado)', malware:'Descarga peligrosa'
+};
+
+const store = {
+  ok: true,
+  get(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch(e){ this.ok = false; return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ this.ok = false; return false; } },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+
+const sysReduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const settings = Object.assign({volume:70, muted:false, captions:true, reduce:sysReduce, touch:'auto'}, store.get(SET_KEY) || {});
+function saveSettings(){ store.set(SET_KEY, settings); }
+
+function newState(){
+  return { v:1, introDone:false, player:{x:112, y:268, dir:'up'}, progress:{mensajes:0, apps:0},
+           answers:{}, security:70, danger:0, finalShown:false };
+}
+let S = newState();
+const player = { x:112, y:262, dir:'up', moving:false, anim:0 };
+let gameTime = 0, nearTarget = null, touchDetected = false;
+
+const $ = (s, r=document) => r.querySelector(s);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* =========================================================
+   5. BASE DE CASOS EDUCATIVOS (editable)
+   Campos: id, station, type, difficulty, category, answer
+   ('legitimo' | 'sospechoso'), contenido, inspect/context,
+   clues (explicación), realLife (recomendación), lesson, why.
+   ========================================================= */
+const NOTES = [
+  ['🛒 Compra de ayer','Pedimos en <b>Pixelia</b> (pixelia.test) un dock USB-C «Puerto Ocho» para el escritorio 2. Pedido <b>PX-48213</b>, pagado con la tarjeta de la oficina terminada en <b>0457</b>.'],
+  ['🏦 Banco','Banco Austral. Sitio oficial: <b>bancoaustral.test</b>. Las alertas reales también aparecen dentro de la app del banco.'],
+  ['☁ Archivos','Usamos <b>Nubora</b> (nubora.test). Marta inició sesión hoy a las <b>21:58</b> desde el equipo <b>NODO-PC2</b>.'],
+  ['🚚 Proveedor','<b>Velatec</b> (velatec.test) nos factura cada mes. Contacto habitual: Ana Ferrer, facturacion@velatec.test. La factura de noviembre <b>ya se pagó el día 5</b>.'],
+  ['💻 Software','Se renovó la licencia de <b>Lumen Editor</b>: descargar solo desde lumensoft.test. La tienda oficial de las tabletas es <b>Tienda Nexo</b>.'],
+  ['📌 Regla del Nodo','Nunca abrimos enlaces, archivos ni instaladores «para probar». Si hay duda, verificamos por otro canal (teléfono conocido, app oficial, dirección escrita a mano).']
+];
+
+const STATIONS = {
+  mensajes: { name:'Centro de Mensajes', pc:'Computadora 1', left:'Spam / phishing', right:'Legítimo', stampL:'SPAM / PHISHING', stampR:'LEGÍTIMO',
+    brief:'Seis correos llegaron a las bandejas de la oficina. Clasifícalos: <b>izquierda</b> si es spam o phishing, <b>derecha</b> si es legítimo. Ojo: los correos peligrosos pueden estar perfectamente escritos, y los legítimos pueden hablar de «seguridad» o «urgencia».' },
+  apps: { name:'Centro de Aplicaciones', pc:'Computadora 2', left:'Sospechoso', right:'Legítimo', stampL:'SOSPECHOSO', stampR:'LEGÍTIMO',
+    brief:'Seis situaciones con anuncios, fichas de aplicaciones e instaladores. Decide si cada una es <b>segura (derecha)</b> o <b>sospechosa o dañina (izquierda)</b>. Fíjate en la procedencia, los permisos y el comportamiento, no solo en la apariencia.' }
+};
+
+const CASES = [
+/* ---------- COMPUTADORA 1: CENTRO DE MENSAJES ---------- */
+{ id:'M1', marks:[['pedidos@pixelia.test','ok','Dominio oficial'],['Pedido: PX-48213','ok','Coincide con la Carpeta'],['tarjeta terminada en 0457','ok','Tarjeta de la oficina'],['https://pixelia.test/cuenta/pedidos/PX-48213','ok','Enlace al dominio oficial'],['nunca te pedirá contraseñas','ok','No pide datos']], station:'mensajes', type:'email', difficulty:'Intermedia', category:'legitimo', answer:'legitimo',
+  title:'Confirmación de compra', summary:'Correo de Pixelia que confirma el pedido PX-48213 (dock USB-C).',
+  email:{ fromName:'Pixelia', fromAddr:'pedidos@pixelia.test', to:'compras@nodofaro.test', date:'19 nov · 18:42', avatar:'PX', avatarBg:'#4c63c9',
+    subject:'Confirmación de tu pedido PX-48213',
+    body:['Hola, Nodo Faro:','Gracias por tu compra. Hemos recibido tu pedido y ya lo estamos preparando.',
+      {list:['Pedido: PX-48213','Producto: Dock USB-C «Puerto Ocho» (1 unidad)','Total pagado: 64,90','Pago: tarjeta terminada en 0457','Entrega estimada: lunes 23 de noviembre']},
+      'Te avisaremos cuando el paquete salga del almacén. Puedes consultar el estado cuando quieras desde Mi cuenta › Pedidos.',
+      'Pixelia nunca te pedirá contraseñas ni los datos completos de tu tarjeta por correo.','— El equipo de Pixelia'],
+    button:{label:'Ver mi pedido', dest:'https://pixelia.test/cuenta/pedidos/PX-48213'} },
+  context:'Carpeta del turno: ayer se compró en Pixelia (pixelia.test) un dock USB-C «Puerto Ocho». Pedido PX-48213, tarjeta terminada en 0457.',
+  clues:['El número de pedido, el producto y la tarjeta terminada en 0457 coinciden con la compra anotada en la Carpeta del turno.',
+    'El remitente y el destino del botón usan exactamente el dominio oficial pixelia.test, sin palabras añadidas.',
+    'No pide contraseñas, pagos adicionales ni datos personales: solo informa.'],
+  realLife:'Relaciona cada correo con algo que realmente hiciste. Aunque este sea legítimo, para revisar un pedido es buena costumbre entrar escribiendo tú la dirección de la tienda o desde su aplicación.',
+  lesson:'Un correo legítimo es coherente con hechos que puedes comprobar: pedido, producto y tarjeta.',
+  why:'Coincide con la compra real y usa el dominio oficial sin pedir datos.' },
+
+{ id:'M2', marks:[['seguridad@bancoaustral-clientes.test','bad','No es bancoaustral.test'],['antes de las 23:59 de hoy','bad','Urgencia'],['quedará suspendida durante 72 horas','bad','Amenaza'],['conexión cifrada','info','HTTPS no prueba identidad'],['https://bancoaustral.verificacion-segura.test/acceso-empresas','bad','Dominio real: verificacion-segura.test']], station:'mensajes', type:'email', difficulty:'Intermedia', category:'phishing', answer:'sospechoso',
+  title:'Suplantación bancaria', summary:'Aviso de «Banco Austral» que amenaza con suspender la cuenta si no se verifica hoy.',
+  email:{ fromName:'Banco Austral · Seguridad', fromAddr:'seguridad@bancoaustral-clientes.test', to:'administracion@nodofaro.test', date:'20 nov · 20:15', avatar:'BA', avatarBg:'#1f6e5a',
+    subject:'Revisión preventiva de su cuenta empresarial',
+    body:['Estimado cliente:','Nuestro sistema de monitoreo detectó un intento de acceso desde un dispositivo no registrado a su banca empresarial. Como medida preventiva, algunas operaciones han sido limitadas temporalmente.',
+      'Para restablecer el servicio, confirme la titularidad de la cuenta antes de las 23:59 de hoy. Si la verificación no se completa, la cuenta quedará suspendida durante 72 horas, de acuerdo con nuestra política de protección al cliente.',
+      'El proceso toma menos de dos minutos y se realiza mediante una conexión cifrada.',
+      'Atentamente,\nDepartamento de Prevención de Fraude\nBanco Austral'],
+    button:{label:'Verificar titularidad', dest:'https://bancoaustral.verificacion-segura.test/acceso-empresas'} },
+  extra:[['Descripción de la página de destino','Muestra un candado (HTTPS) y el logotipo del banco. Solicita usuario, contraseña y el código del token de seguridad.']],
+  context:'Carpeta del turno: el sitio oficial del banco es bancoaustral.test y sus alertas reales también aparecen dentro de la app del banco.',
+  clues:['El remitente es bancoaustral-clientes.test, un dominio distinto de bancoaustral.test aunque contenga el nombre del banco.',
+    'El botón lleva a verificacion-segura.test: «bancoaustral» solo aparece al principio como adorno. El dominio real es lo que va justo antes de .test.',
+    'Pide usuario, contraseña y código del token; un banco no solicita credenciales mediante un enlace en un correo.',
+    'La presión (plazo hasta las 23:59 y amenaza de suspensión) busca que actúes sin verificar. El candado HTTPS solo indica cifrado, no identidad.'],
+  realLife:'No pulses el botón. Abre la app del banco o escribe tú bancoaustral.test; si sigue la duda, llama al número que aparece en tu tarjeta. Reporta el correo como phishing.',
+  lesson:'Un nombre conocido dentro de la dirección no garantiza el dominio: mira lo que está justo antes del final (.test).',
+  why:'Dominio falso + petición de credenciales y token mediante un enlace.' },
+
+{ id:'M3', marks:[['figura en un directorio comercial','bad','Nadie lo pidió: spam'],['No necesitas códigos','ok','No pide datos'],['responde a este correo con la palabra BAJA','info','Responder confirma tu dirección'],['https://confortoficina.test/catalogo','ok','Su propio dominio: no suplanta']], station:'mensajes', type:'email', difficulty:'Fácil', category:'spam', answer:'sospechoso',
+  title:'Publicidad no solicitada', summary:'Boletín comercial de Confort Oficina con descuentos en sillas.',
+  email:{ fromName:'Confort Oficina', fromAddr:'novedades@confortoficina.test', to:'info@nodofaro.test', date:'20 nov · 17:03', avatar:'CO', avatarBg:'#a0612c',
+    subject:'Semana ergonómica: sillas con hasta 30 % de descuento',
+    body:['¡Hola!','Tu espalda merece un descanso. Esta semana, todas nuestras sillas ergonómicas y reposapiés tienen hasta un 30 % de descuento.',
+      {list:['Silla Ola Pro: de 249 a 179','Reposapiés ajustable: de 39 a 29','Envío gratis en pedidos superiores a 100']},
+      'No necesitas códigos: el descuento se aplica directamente en nuestra tienda.',
+      'Recibes este boletín porque tu dirección figura en un directorio comercial. Si no deseas recibir más comunicaciones, responde a este correo con la palabra BAJA.'],
+    button:{label:'Ver catálogo', dest:'https://confortoficina.test/catalogo'} },
+  context:'La oficina no tiene ninguna relación ni suscripción con Confort Oficina. Nadie pidió este boletín.',
+  clues:['Nadie en la oficina se suscribió: el correo llegó porque la dirección «figura en un directorio comercial». Es publicidad no solicitada.',
+    'No suplanta a ninguna entidad conocida, no pide contraseñas, pagos ni datos personales, y el enlace va a su propio dominio.',
+    'Por eso es spam, no phishing: molesto, pero sin intención de robar credenciales.'],
+  realLife:'Márcalo como spam con la función de tu correo. Evita responder «BAJA» a remitentes desconocidos: puede confirmar que tu dirección está activa.',
+  lesson:'No todo correo no deseado es phishing: el spam comercial no intenta robar credenciales.',
+  why:'Publicidad no pedida, sin suplantación ni robo de datos: spam.' },
+
+{ id:'M4', marks:[['seguridad@nubora.test','ok','Dominio oficial'],['NODO-PC2','ok','Coincide con la Carpeta'],['20 nov, 21:58','ok','Hora real del inicio de Marta'],['actúa pronto','info','Urgencia, pero sin trampa'],['escribe nubora.test en tu navegador','ok','Canal que tú controlas'],['este mensaje no incluye enlaces de acceso','ok','Sin enlaces']], station:'mensajes', type:'email', difficulty:'Avanzada', category:'legitimo', answer:'legitimo',
+  title:'Aviso de seguridad legítimo', summary:'Alerta de Nubora sobre un inicio de sesión nuevo en NODO-PC2.',
+  email:{ fromName:'Nubora', fromAddr:'seguridad@nubora.test', to:'marta@nodofaro.test', date:'20 nov · 21:59', avatar:'NB', avatarBg:'#3b6fd1',
+    subject:'Alerta de seguridad: nuevo inicio de sesión en tu cuenta',
+    body:['Hola, Marta:','Detectamos un inicio de sesión nuevo en tu cuenta de Nubora.',
+      {list:['Dispositivo: Nubora Escritorio en NODO-PC2','Fecha: 20 nov, 21:58','Ubicación aproximada: Bahía Clara']},
+      'Si fuiste tú, no necesitas hacer nada.',
+      'Si no reconoces esta actividad, actúa pronto: abre la aplicación Nubora que ya tienes instalada, o escribe nubora.test en tu navegador, y ve a Configuración › Seguridad › Sesiones activas para cerrarla y cambiar tu contraseña.',
+      'Por tu seguridad, este mensaje no incluye enlaces de acceso. Nubora nunca te pedirá tu contraseña ni códigos por correo o por teléfono.'] },
+  context:'Carpeta del turno: Marta inició sesión en Nubora hoy a las 21:58 desde el equipo NODO-PC2.',
+  clues:['El remitente usa el dominio oficial nubora.test.',
+    'Los datos del inicio de sesión (NODO-PC2, 21:58) coinciden exactamente con la Carpeta del turno: fue Marta.',
+    'Aunque habla de «alerta» y pide actuar pronto, no incluye enlaces ni pide la contraseña: te indica abrir la app instalada o escribir la dirección tú mismo.'],
+  realLife:'Un aviso legítimo te dirige a un canal que tú controlas. Si recibes uno así y no fuiste tú, entra por la app o escribiendo la dirección, nunca por un enlace del correo.',
+  lesson:'Palabras como «alerta» o «urgente» no convierten un mensaje en phishing: importa qué te pide y por qué canal.',
+  why:'Dominio oficial, datos coherentes y canal seguro sin enlaces.' },
+
+{ id:'M5', marks:[['premios@pixelia-recompensas.test','bad','No es pixelia.test'],['el 18 de noviembre','bad','La compra fue el 19'],['Abonar una tasa de gestión logística y seguro de 12,50.','bad','Pagar por un premio'],['número de documento de identidad','bad','Datos sensibles'],['vence en 48 horas','bad','Urgencia'],['ante notario','info','Formalidad para dar confianza']], station:'mensajes', type:'email', difficulty:'Intermedia', category:'estafa', answer:'sospechoso',
+  title:'Premio fraudulento', summary:'«Pixelia Recompensas» anuncia una tableta ganada a cambio de una tasa y datos personales.',
+  email:{ fromName:'Pixelia Recompensas', fromAddr:'premios@pixelia-recompensas.test', to:'compras@nodofaro.test', date:'20 nov · 19:27', avatar:'PX', avatarBg:'#4c63c9',
+    subject:'Notificación de adjudicación — Sorteo Clientes Fieles 2026',
+    body:['Estimado/a cliente:','Nos complace comunicarle que su compra reciente le permitió participar en el Sorteo Clientes Fieles 2026, celebrado ante notario el 18 de noviembre. Ha resultado adjudicatario de una tableta Nexo Tab 11 (valor comercial: 389,00).',
+      'Para formalizar la entrega, nuestro protocolo requiere:',
+      {list:['Abonar una tasa de gestión logística y seguro de 12,50.','Confirmar nombre completo, número de documento de identidad, fecha de nacimiento y los datos de la tarjeta con la que se realizará el cargo.']},
+      'El plazo de aceptación vence en 48 horas; transcurrido este, el premio se reasignará conforme a las bases del sorteo.',
+      'Código de adjudicación: PXR-2026-0917'],
+    button:{label:'Aceptar premio y pagar tasa', dest:'https://pixelia-recompensas.test/adjudicacion'} },
+  context:'Carpeta del turno: la única compra en Pixelia fue el pedido PX-48213, realizado el 19 de noviembre. Nadie de la oficina se inscribió en sorteos.',
+  clues:['El dominio pixelia-recompensas.test no es pixelia.test: usa el nombre de la tienda para ganarse tu confianza.',
+    'Dice que el sorteo se celebró el 18 de noviembre «por tu compra reciente», pero la compra fue el 19: la historia no cuadra.',
+    'Para recibir un premio te pide pagar y entregar documento, fecha de nacimiento y datos de tarjeta. Un premio real no exige pagar ni esos datos.',
+    'El plazo de 48 horas y el lenguaje formal («adjudicatario», «ante notario») buscan parecer serios y apurarte.'],
+  realLife:'No pagues ni envíes datos. Si quieres confirmarlo, entra a pixelia.test escribiendo la dirección o contacta a la tienda por su canal oficial. Reporta el correo.',
+  lesson:'Si para recibir un premio debes pagar y entregar datos personales, el premio es el anzuelo.',
+  why:'Dominio distinto, fechas incoherentes y cobro + datos para un supuesto premio.' },
+
+{ id:'M6', marks:[['facturacion@velatec-cobros.test','bad','No es velatec.test'],['a.ferrer.velatec@correo-rapido.test','bad','Respuestas a un correo externo'],['RE: Factura noviembre','bad','No hubo conversación previa'],['nueva cuenta indicada en el documento','bad','Cambio de cuenta bancaria'],['«Habilitar contenido»','bad','Activaría código oculto'],['EstadoCuenta_Velatec_NOV.pdf.htm','bad','Doble extensión: no es PDF']], station:'mensajes', type:'email', difficulty:'Avanzada', category:'malicioso', answer:'sospechoso',
+  title:'Suplantación con archivo inesperado', summary:'«Velatec» envía un estado de cuenta adjunto y pide pagar a una nueva cuenta bancaria.',
+  email:{ fromName:'Velatec · Facturación', fromAddr:'facturacion@velatec-cobros.test', replyTo:'a.ferrer.velatec@correo-rapido.test', to:'administracion@nodofaro.test', date:'20 nov · 21:12', avatar:'VT', avatarBg:'#6a4fb3',
+    subject:'RE: Factura noviembre — estado de cuenta actualizado',
+    body:['Buenas noches:','Tal como conversamos, adjuntamos el estado de cuenta actualizado de noviembre.',
+      'Debido a una auditoría interna, nuestra entidad bancaria ha cambiado y los pagos pendientes deben realizarse a la nueva cuenta indicada en el documento.',
+      'Para visualizar correctamente el documento protegido, ábralo y pulse «Habilitar contenido».',
+      'Agradecemos procesar el pago hoy mismo para evitar recargos.',
+      'Saludos cordiales,\nAna Ferrer\nDepartamento de Cobros · Velatec'],
+    attachment:{name:'EstadoCuenta_Velatec_NOV.pdf.htm', size:'31 KB', ext:'HTM'} },
+  context:'Carpeta del turno: el contacto habitual es Ana Ferrer, facturacion@velatec.test. La factura de noviembre ya se pagó el día 5.\nNo existe ninguna conversación previa: el «RE:» no responde a ningún correo enviado por la oficina.',
+  clues:['El remitente es velatec-cobros.test, no velatec.test, y las respuestas irían a un correo externo (correo-rapido.test).',
+    'El adjunto tiene doble extensión: parece PDF, pero termina en .htm. Nadie lo esperaba y pide «Habilitar contenido».',
+    'La factura de noviembre ya se pagó el día 5 y el «RE:» simula una conversación que nunca existió.',
+    'El cambio de cuenta bancaria con prisa es una táctica típica de fraude a empresas.'],
+  realLife:'No abras el adjunto ni pagues. Llama a Velatec al número que ya conoces (no al que aparezca en el correo) para verificar, y avisa al equipo de soporte.',
+  lesson:'Un adjunto inesperado y pequeñas diferencias en el remitente exigen verificar por otro canal.',
+  why:'Dominio y «responder a» distintos, adjunto .pdf.htm inesperado, factura ya pagada.' },
+
+/* ---------- COMPUTADORA 2: ANUNCIOS Y APLICACIONES ---------- */
+{ id:'A1', marks:[['Tienda Nexo — tienda oficial de la tableta','ok','Fuente oficial'],['Notificaciones — opcional, para avisarte de tus recordatorios','ok','Permiso acorde'],['Almacenamiento de la app — para guardar tus notas','ok','Permiso acorde']], station:'apps', type:'app', difficulty:'Fácil', category:'legitimo', answer:'legitimo',
+  title:'App en la tienda oficial', summary:'Ficha de «Nota Rápida» en la Tienda Nexo con permisos razonables.',
+  app:{ kind:'Ficha de aplicación', bar:'Tienda Nexo — tienda oficial de la tableta', icon:{t:'NR', bg:'#d9a520'}, title:'Nota Rápida', sub:'Estudio Albor · Productividad',
+    rating:'★ 4,6 · 18 mil reseñas · 250 mil descargas',
+    blocks:[ {t:'p', text:'Escribe notas, listas y recordatorios en segundos. Funciona sin conexión y, si quieres, sincroniza con tu cuenta.'},
+      {t:'list', title:'Permisos que solicita', items:['Notificaciones — opcional, para avisarte de tus recordatorios','Almacenamiento de la app — para guardar tus notas']},
+      {t:'meta', items:[['Versión','5.4.1 (actualizada el 2 nov)'],['Anuncios','No contiene'],['Compras','Tema oscuro opcional']]},
+      {t:'buttons', items:['Instalar']} ] },
+  inspect:[['Programa','Nota Rápida 5.4.1'],
+    ['Fuente o procedencia','Tienda Nexo, la tienda oficial que viene instalada en las tabletas de la oficina.'],
+    ['Desarrollador','Estudio Albor — 6 aplicaciones publicadas desde 2019.'],
+    ['Permisos solicitados','Notificaciones (opcional) y almacenamiento propio de la app.\nNo pide contactos, mensajes, micrófono ni accesibilidad.'],
+    ['Acción que intenta provocar','Instalar la app con el botón de la propia tienda.'],
+    ['Comportamiento observado','Ninguno todavía: es la ficha previa a la instalación.'],
+    ['Información adicional','Las reseñas recientes se quejan de una sincronización lenta; ninguna menciona anuncios ni cobros inesperados.']],
+  clues:['Procede de la tienda oficial del dispositivo, anotada en la Carpeta del turno.',
+    'Los permisos encajan con la función: notificaciones para recordatorios y almacenamiento para las notas.',
+    'No pide acciones inesperadas (desactivar protecciones, permisos de accesibilidad, instalar desde fuera).'],
+  realLife:'Incluso en tiendas oficiales, revisa los permisos y las reseñas antes de instalar, y desconfía si una app pide más de lo que necesita.',
+  lesson:'Una app de tienda oficial con permisos acordes a su función es una señal de confianza.',
+  why:'Tienda oficial y permisos proporcionales a su función.' },
+
+{ id:'A2', marks:[['noticiasdeldia.test','bad','Es una página web, no tu sistema'],['Se detectaron (5) amenazas en tu tableta.','bad','Una web no puede analizar tu equipo'],['01:59','bad','Cuenta atrás: presión'],['Instala ahora LimpiaMax Pro','bad','Limpiador desconocido'],['no muestra una forma clara de cerrarla','bad','Te acorrala']], station:'apps', type:'app', difficulty:'Fácil', category:'scareware', answer:'sospechoso',
+  title:'Falsa advertencia de virus', summary:'Ventana emergente en una web de noticias que «detecta 5 virus» y ofrece LimpiaMax Pro.',
+  app:{ kind:'Navegador · ventana emergente', bar:'🔒 https://noticiasdeldia.test/deportes/resultados',
+    blocks:[ {t:'p', text:'Mientras lees los resultados deportivos, aparece de repente esta ventana:'},
+      {t:'alert', title:'⚠ Alerta de seguridad de NexoOS', text:'Se detectaron (5) amenazas en tu tableta. Tus fotos y documentos podrían dañarse en 01:59. Instala ahora LimpiaMax Pro, la herramienta recomendada, para reparar el sistema.', buttons:['Reparar ahora','Cancelar']},
+      {t:'p', text:'La ventana vibra, emite un pitido y no muestra una forma clara de cerrarla.'} ] },
+  inspect:[['Programa','LimpiaMax Pro (limpiador desconocido)'],
+    ['Fuente o procedencia','Bloque publicitario incrustado en noticiasdeldia.test, servido por anuncios-flash.test. No proviene del sistema operativo.'],
+    ['Permisos solicitados','Si se instalara, LimpiaMax pediría «Administrador del dispositivo» y «Accesibilidad» (control total de la pantalla).'],
+    ['Acción que intenta provocar','Que pulses «Reparar ahora» y descargues LimpiaMax.apk desde limpiamax-descarga.test, fuera de la tienda oficial.'],
+    ['Comportamiento observado','La ventana está dentro de la pestaña del navegador. El botón «Cancelar» también lleva a la descarga. La cuenta atrás se reinicia al recargar la página.'],
+    ['Información adicional','El centro de seguridad real de NexoOS (Ajustes › Seguridad) indica: «Sin amenazas · último análisis: hoy 21:30».']],
+  clues:['La «alerta» vive dentro de una página web y la sirve un servidor de anuncios: un sitio web no puede analizar tu dispositivo.',
+    'Usa miedo y una cuenta atrás para que instales un limpiador desconocido desde fuera de la tienda oficial.',
+    'Hasta el botón «Cancelar» inicia la descarga, y el centro de seguridad real dice que no hay amenazas.'],
+  realLife:'No pulses ningún botón de la ventana. Cierra la pestaña (o el navegador) y, si te preocupa, revisa la seguridad desde los ajustes del propio sistema.',
+  lesson:'Una alerta mostrada por un anuncio no es un diagnóstico del sistema.',
+  why:'Alerta falsa dentro de un anuncio que empuja a instalar un limpiador desconocido.' },
+
+{ id:'A3', marks:[['https://lumensoft.test/descargas/editor','ok','Sitio oficial'],['Editor verificado: Lumen Software S.A.','ok','Firma del fabricante'],['¿Quieres permitir que «Lumen Editor» haga cambios en este equipo?','info','Normal en instaladores'],['Enviar estadísticas de uso anónimas (opcional)','ok','Opcional y desmarcado'],['no ofrece programas adicionales','ok','Sin extras']], station:'apps', type:'app', difficulty:'Intermedia', category:'legitimo', answer:'legitimo',
+  title:'Instalador legítimo', summary:'Instalador de Lumen Editor 3.2 descargado del sitio oficial, con firma válida.',
+  app:{ kind:'Instalador descargado', bar:'🔒 https://lumensoft.test/descargas/editor', icon:{t:'LE', bg:'#1f9e92'}, title:'Lumen Editor 3.2', sub:'Lumen Software S.A. · Editor de documentos',
+    blocks:[ {t:'file', name:'LumenEditor-3.2-instalador', size:'84 MB', ext:'SETUP'},
+      {t:'sys', title:'Control de cuentas del sistema', text:'¿Quieres permitir que «Lumen Editor» haga cambios en este equipo?\nEditor verificado: Lumen Software S.A.', buttons:['Sí','No']},
+      {t:'list', title:'Opciones de instalación', items:['☑ Crear acceso directo en el escritorio','☐ Enviar estadísticas de uso anónimas (opcional)']},
+      {t:'p', text:'El asistente no ofrece programas adicionales ni barras de herramientas.'} ] },
+  inspect:[['Programa','Lumen Editor 3.2 (instalador)'],
+    ['Fuente o procedencia','Descargado desde lumensoft.test/descargas, el sitio oficial del desarrollador.'],
+    ['Firma digital','Válida — emitida a Lumen Software S.A., que coincide con el fabricante del programa.'],
+    ['Permisos solicitados','Permiso de administrador para instalarse (habitual en cualquier instalador). Acceso a los archivos que abras con el editor y conexión a lumensoft.test para buscar actualizaciones.'],
+    ['Acción que intenta provocar','Instalar el editor cuya licencia acaba de renovar la oficina.'],
+    ['Comportamiento observado','No pide desactivar el antivirus ni el firewall. No agrega extensiones ni cambia la configuración del navegador.'],
+    ['Contexto previo','Carpeta del turno: licencia de Lumen Editor renovada; descargar solo desde lumensoft.test.']],
+  clues:['La descarga viene del sitio oficial indicado en la Carpeta del turno, y la firma digital coincide con el fabricante.',
+    'Pedir permiso de administrador es normal en un instalador; por sí solo no es señal de peligro.',
+    'No pide desactivar defensas, no instala extras y las opciones de privacidad son claras y opcionales.'],
+  realLife:'Descarga programas solo del sitio oficial o de la tienda del sistema, comprueba que el editor verificado coincida con el fabricante y desmarca lo opcional que no necesites.',
+  lesson:'El origen oficial, una firma coherente y permisos apropiados indican un instalador confiable.',
+  why:'Sitio oficial, firma del fabricante y sin pedir desactivar defensas.' },
+
+{ id:'A4', marks:[['La conversión funcionó bien','info','Funcionar no es ser seguro'],['cambió a buscadorveloz.test','bad','Cambio no autorizado'],['Se agregó la extensión «Ofertas Express»','bad','Instalación oculta'],['sin que nadie la pidiera','bad','Publicidad sin permiso'],['volvió a cambiar tras reiniciar','bad','Se resiste a quitarse']], station:'apps', type:'app', difficulty:'Intermedia', category:'adware', answer:'sospechoso',
+  title:'Adware', summary:'ConvertiPDF Plus funciona, pero cambia la página de inicio y abre pestañas publicitarias.',
+  app:{ kind:'Informe de comportamiento · app instalada hace 3 días', bar:'Monitor del equipo NODO-PC2', icon:{t:'CP', bg:'#5a6fd6'}, title:'ConvertiPDF Plus', sub:'«Convierte cualquier documento a PDF, gratis»',
+    blocks:[ {t:'p', text:'Un compañero la instaló para convertir un informe. La conversión funcionó bien y la app tiene una interfaz cuidada.'},
+      {t:'list', title:'Registro de los últimos días', items:['Lun 09:12 — La página de inicio del navegador cambió a buscadorveloz.test','Lun 09:13 — Se agregó la extensión «Ofertas Express»','Mar 14:40 — Se abrió una pestaña de apuestas sin que nadie la pidiera','Mié 10:05 — Se abrieron 3 pestañas de ofertas en 20 minutos','Mié 10:30 — Se restauró la página de inicio; volvió a cambiar tras reiniciar']} ] },
+  inspect:[['Programa','ConvertiPDF Plus 2.0 + extensión «Ofertas Express»'],
+    ['Fuente o procedencia','Instalado desde un anuncio patrocinado que apareció al buscar «convertir a pdf gratis».'],
+    ['Permisos solicitados','Leer y cambiar datos de todos los sitios web · Administrar pestañas · Cambiar la configuración del navegador.'],
+    ['Acción que intenta provocar','Mostrar publicidad y dirigir las búsquedas a buscadorveloz.test.'],
+    ['Comportamiento observado','Cambios no autorizados en la página de inicio, pestañas publicitarias automáticas y restauración de esos cambios después de reiniciar.'],
+    ['Información adicional','La función principal (convertir a PDF) sí funciona. Durante la instalación no apareció ninguna casilla sobre extensiones ni cambios del navegador.']],
+  clues:['Que la función principal funcione no la hace segura: hay que mirar el comportamiento.',
+    'Cambió la página de inicio, instaló una extensión y abre pestañas publicitarias sin consentimiento; además, revierte tus correcciones.',
+    'Pide permisos excesivos para un conversor: leer y cambiar datos de todos los sitios web.'],
+  realLife:'Desinstala la app y la extensión, restablece la configuración del navegador y pasa un análisis con la herramienta de seguridad del sistema. Busca herramientas en tiendas o sitios oficiales.',
+  lesson:'El adware se reconoce por su comportamiento: cambios y publicidad que nadie autorizó.',
+  why:'Cambios no autorizados en el navegador y pestañas publicitarias automáticas.' },
+
+{ id:'A5', marks:[['photoforge-completo.test','bad','No es el sitio oficial'],['sin pagar la licencia anual','bad','Programa de pago «gratis»'],['más de 50 000 descargas este mes','info','Cifra imposible de verificar'],['Desactiva temporalmente el antivirus y la protección en tiempo real','bad','Señal de riesgo grave'],['Ejecuta Activador.exe como administrador','bad','Crack con control total'],['Daniela R.','info','Testimonio no verificable']], station:'apps', type:'app', difficulty:'Intermedia', category:'malware', answer:'sospechoso',
+  title:'Descarga gratuita sospechosa', summary:'Anuncio de PhotoForge «edición completa gratis» que pide desactivar el antivirus.',
+  app:{ kind:'Anuncio patrocinado · página de descarga', bar:'🔒 https://photoforge-completo.test/descarga-gratis', icon:{t:'PF', bg:'#8a55d6'}, title:'PhotoForge Studio 2026 — Edición completa', sub:'Gratis · Sin marcas de agua · Todas las funciones',
+    rating:'★★★★★ 4,9 · «más de 50 000 descargas este mes»',
+    blocks:[ {t:'p', text:'Obtén la versión profesional del editor de fotos favorito de los diseñadores, sin pagar la licencia anual.'},
+      {t:'list', title:'Instrucciones de instalación', items:['1. Descarga el paquete PhotoForge_Full_2026.zip','2. Desactiva temporalmente el antivirus y la protección en tiempo real: el activador puede detectarse como «falso positivo»','3. Ejecuta Activador.exe como administrador y reinicia']},
+      {t:'quote', text:'«Funciona perfecto, lo uso en mi estudio desde hace meses.» — Daniela R.'},
+      {t:'buttons', items:['Descargar ahora (2,1 GB)']} ] },
+  inspect:[['Programa','PhotoForge Studio 2026 «edición completa» + Activador.exe'],
+    ['Fuente o procedencia','Anuncio patrocinado en un video tutorial que enlaza a photoforge-completo.test. El desarrollador oficial vende el programa en photoforge.test y ofrece una prueba gratis de 7 días.'],
+    ['Permisos solicitados','Ejecutar Activador.exe con permisos de administrador.'],
+    ['Acción que intenta provocar','Desactivar el antivirus y la protección en tiempo real antes de instalar.'],
+    ['Comportamiento observado','No aplica: la experiencia es simulada y no se descarga nada.'],
+    ['Información adicional','La página muestra candado HTTPS y reseñas de cinco estrellas sin perfiles verificables.']],
+  clues:['Pide desactivar el antivirus y la protección en tiempo real: es una de las señales de riesgo más graves.',
+    'Ofrece gratis un programa de pago mediante un «activador» desde un dominio que no es el oficial (photoforge.test).',
+    'El candado HTTPS, las cinco estrellas y los testimonios no prueban nada: son fáciles de fabricar.'],
+  realLife:'Nunca desactives tus defensas para instalar algo. Usa la versión de prueba oficial o alternativas gratuitas legítimas desde tiendas o sitios oficiales.',
+  lesson:'Si para instalar algo te piden desactivar las protecciones, no lo instales.',
+  why:'Pide desactivar el antivirus y ejecutar un «activador» desde un sitio no oficial.' },
+
+{ id:'A6', marks:[['Tienda Nexo — tienda oficial de la tableta','ok','Fuente oficial'],['Ubicación aproximada — para el pronóstico local','ok','Permiso coherente'],['banner marcado «Anuncio»','ok','Publicidad identificada'],['permite desactivar la personalización de anuncios','ok','Tú tienes el control'],['No cambió el navegador ni la página de inicio','ok','Sin cambios no autorizados']], station:'apps', type:'app', difficulty:'Avanzada', category:'legitimo', answer:'legitimo',
+  title:'App legítima con publicidad', summary:'Clima Brújula: app gratuita con anuncios identificados y controlables.',
+  app:{ kind:'Ficha de Tienda Nexo + revisión tras 7 días de uso', bar:'Tienda Nexo — tienda oficial de la tableta', icon:{t:'CB', bg:'#3d9a63'}, title:'Clima Brújula', sub:'Brújula Apps · Tiempo',
+    rating:'★ 4,3 · Contiene anuncios · Gratis',
+    blocks:[ {t:'p', text:'Pronóstico por horas y alertas de lluvia para tu zona. Gratis con anuncios; la versión Plus los elimina.'},
+      {t:'list', title:'Permisos', items:['Ubicación aproximada — para el pronóstico local (puedes elegir «solo mientras se usa»)','Notificaciones — alertas de lluvia, opcional']},
+      {t:'ad', text:'Café La Bahía: 2x1 en capuchinos'},
+      {t:'list', title:'Revisión del equipo tras 7 días', items:['Los anuncios aparecen como un banner marcado «Anuncio» dentro de la app','Ajustes › Privacidad permite desactivar la personalización de anuncios','No cambió el navegador ni la página de inicio; no abrió pestañas','Se desinstala por completo desde los ajustes del sistema']} ] },
+  inspect:[['Programa','Clima Brújula 7.1'],
+    ['Fuente o procedencia','Tienda Nexo (oficial). Desarrollador Brújula Apps, verificado por la tienda.'],
+    ['Permisos solicitados','Ubicación aproximada (coherente con un pronóstico local y configurable) y notificaciones opcionales.\nNo pide contactos, SMS ni accesibilidad.'],
+    ['Acción que intenta provocar','Usar la app; ofrece de forma opcional pagar la versión Plus sin anuncios.'],
+    ['Comportamiento observado','Banners identificados como «Anuncio» solo dentro de la app. Ninguna modificación del navegador ni ventanas fuera de la app.'],
+    ['Información adicional','La ficha enlaza una política de privacidad que explica qué datos usa para los anuncios y cómo limitarlos.']],
+  clues:['Tiene publicidad, pero claramente identificada y solo dentro de la propia app.',
+    'Se puede limitar desde sus ajustes, y no toca el navegador ni abre contenido sin permiso: justo lo contrario que el adware.',
+    'Procede de la tienda oficial y su permiso de ubicación es coherente con un pronóstico local y configurable.'],
+  realLife:'La publicidad no es sinónimo de amenaza. Revisa los ajustes de privacidad, concede la ubicación «solo mientras se usa» y desinstala si su comportamiento cambia.',
+  lesson:'No toda app con anuncios es adware: lo que importa es si respeta tu control y tu configuración.',
+  why:'Anuncios identificados y controlables, sin cambios no autorizados.' }
+];
+
+function casesOf(st){ return CASES.filter(c => c.station === st); }
+['mensajes','apps'].forEach(st => casesOf(st).forEach((c, i) => { c.num = i + 1; }));
+
+/* =========================================================
+   6. VALIDACIÓN DE RESPUESTAS   y   7. PUNTUACIÓN
+   ========================================================= */
+function evaluate(c, choice){
+  const correct = choice === c.answer;
+  let delta = 0, dangerous = false;
+  if (correct) delta = 3;
+  else if (c.category === 'legitimo') delta = -2;          // legítimo marcado como sospechoso
+  else if (c.category === 'spam') delta = -4;              // spam marcado como legítimo
+  else if (DANGEROUS.has(c.category)) { delta = -12; dangerous = true; } // peligro aceptado
+  return { correct, delta, dangerous };
+}
+function applyAnswer(c, choice){
+  if (S.answers[c.id]) return null;                        // nunca registrar dos veces
+  const r = evaluate(c, choice);
+  S.answers[c.id] = { choice, correct:r.correct, delta:r.delta, dangerous:r.dangerous };
+  S.security = clamp(S.security + r.delta, 0, 100);
+  if (r.dangerous) S.danger++;
+  S.progress[c.station] = casesOf(c.station).filter(x => S.answers[x.id]).length;
+  saveGame(); updateHUD();
+  return r;
+}
+function hits(st){ return CASES.filter(c => (!st || c.station === st) && S.answers[c.id] && S.answers[c.id].correct).length; }
+function stationDone(st){ return S.progress[st] >= 6; }
+function allDone(){ return stationDone('mensajes') && stationDone('apps'); }
+function finalCategory(){
+  const h = hits(), d = S.danger;
+  if (h <= 6 || d >= 2) return 'critico';          // 1º incidente crítico
+  if (h >= 10 && d === 0) return 'protegida';       // 2º oficina protegida
+  return 'moderada';                                 // 3º alerta moderada
+}
+
+/* =========================================================
+   10. GUARDADO
+   ========================================================= */
+function saveGame(){
+  S.player = { x:Math.round(player.x), y:Math.round(player.y), dir:player.dir };
+  store.set(SAVE_KEY, S);
+}
+function loadGame(){
+  const d = store.get(SAVE_KEY);
+  if (!d || d.v !== 1) return false;
+  S = Object.assign(newState(), d);
+  S.progress = Object.assign({mensajes:0, apps:0}, d.progress || {});
+  S.answers = d.answers || {};
+  player.x = S.player.x; player.y = S.player.y; player.dir = S.player.dir || 'up';
+  return true;
+}
+function hasSave(){ const d = store.get(SAVE_KEY); return !!(d && d.v === 1 && d.introDone); }
+
+/* =========================================================
+   2. REPRESENTACIÓN DE LA OFICINA Y GRÁFICOS (Canvas 2D)
+   ========================================================= */
+const cv = $('#cv'), ctx = cv.getContext('2d');
+function mk(w, h){ const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; }
+function R(g, x, y, w, h, col){ g.fillStyle = col; g.fillRect(x, y, w, h); }
+
+const FONT = { A:['010','101','111','101','101'], C:['011','100','100','100','011'], D:['110','101','101','101','110'], E:['111','100','110','100','111'],
+  F:['111','100','110','100','100'], I:['111','010','010','010','111'], L:['100','100','100','100','111'], N:['110','101','101','101','101'],
+  O:['010','101','101','101','010'], R:['110','101','110','101','101'], S:['011','100','010','001','110'], T:['111','010','010','010','010'] };
+function ptext(g, str, x, y, col){
+  g.fillStyle = col; let cx = x;
+  for (const ch of str){ const gl = FONT[ch]; if (gl) for (let r=0;r<5;r++) for (let c=0;c<3;c++) if (gl[r][c]==='1') g.fillRect(cx+c, y+r, 1, 1); cx += 4; }
+}
+
+function drawWindow(g, x, y, w, h, moon){
+  R(g, x-2, y-2, w+4, h+4, '#33415c'); R(g, x, y, w, h, '#0b1630'); R(g, x, y+h-9, w, 9, '#11234a');
+  for (let i=0;i<7;i++) R(g, x+((i*13+5)%w), y+((i*7+3)%(h-10)), 1, 1, '#cfd8ff');
+  for (let i=0;i<w;i+=5){ const bh = 4+((i*37)%9); R(g, x+i, y+h-bh, 4, bh, '#081020'); if (((i*11)%3)===0) R(g, x+i+1, y+h-bh+2, 1, 1, '#f2c14e'); }
+  if (moon){ R(g, x+w-10, y+3, 5, 5, '#f4f1d0'); R(g, x+w-9, y+4, 2, 2, '#d9d4b0'); }
+  R(g, x+(w>>1), y, 1, h, '#33415c'); R(g, x, y+(h>>1), w, 1, '#33415c');
+  R(g, x-3, y+h+2, w+6, 2, '#4a5873');
+}
+
+function buildBG(){
+  const [c, g] = mk(WW, WH);
+  for (let ty=2; ty<MAP_H; ty++) for (let tx=0; tx<MAP_W; tx++){
+    const x = tx*16, y = ty*16;
+    R(g, x, y, 16, 16, ((tx+ty)&1) ? '#1b283c' : '#1e2c42');
+    R(g, x, y, 16, 1, '#172234'); R(g, x, y, 1, 16, '#172234');
+    if (((tx*7+ty*3)%5)===0) R(g, x+5, y+9, 2, 1, '#24344e');
+  }
+  // alfombra
+  R(g, 64, 212, 96, 50, '#174042'); R(g, 66, 214, 92, 46, '#1f5656'); R(g, 70, 218, 84, 38, '#194a4b');
+  for (let x=72; x<152; x+=6){ R(g, x, 220, 2, 2, '#2ea59a'); R(g, x, 252, 2, 2, '#2ea59a'); }
+  ['111111111','122222221','122232221','122333221','122232221','012222210','001222100','000121000','000010000'].forEach((row,y) =>
+    [...row].forEach((v,x) => { if (v !== '0') R(g, 103+x*2, 228+y*2, 2, 2, v === '1' ? '#2ea59a' : v === '2' ? '#123c3d' : '#f2c14e'); }));
+  // hiedra en las paredes laterales
+  const ivy = (x, y, len) => { for (let i=0;i<len;i++){ R(g, x, y+i, 1, 1, '#2d6b45'); if (i%5===0) R(g, x-2, y+i, 2, 2, '#3f8f5a'); if (i%5===2) R(g, x+1, y+i, 2, 2, '#5cc98a'); } };
+  ivy(12, 34, 44); ivy(211, 64, 30); ivy(4, 120, 26);
+  // pared del fondo
+  R(g, 0, 0, WW, 34, '#1a2840'); for (let x=0;x<WW;x+=8) R(g, x, 4, 1, 27, '#1d2d47');
+  R(g, 0, 0, WW, 4, '#0c1424'); R(g, 0, 31, WW, 3, '#101a2c'); R(g, 0, 34, WW, 2, 'rgba(0,0,0,.3)');
+  ptext(g, 'NODO FARO', 20, 9, '#2ec4b6'); R(g, 19, 16, 37, 1, '#1a6f69');
+  drawWindow(g, 60, 6, 16, 20, false); drawWindow(g, 150, 6, 22, 14, true);
+  // pizarra (Carpeta del turno)
+  R(g, 80, 4, 64, 26, '#8a94a6'); R(g, 82, 6, 60, 21, '#dfe6ee'); R(g, 82, 27, 60, 2, '#6b7486');
+  ptext(g, 'NOTAS', 84, 8, '#2b4c7e');
+  for (let r=0;r<4;r++) R(g, 86, 15+r*3, 22+((r*9)%14), 1, '#5b7099');
+  R(g, 118, 9, 7, 7, '#f2c14e'); R(g, 127, 9, 7, 7, '#5cc98a'); R(g, 120, 18, 7, 7, '#ffb0a0'); R(g, 130, 19, 8, 6, '#9ad8f0');
+  R(g, 119, 11, 5, 1, '#8a6a10'); R(g, 128, 11, 5, 1, '#2d6b45');
+  // paredes laterales e inferior
+  R(g, 0, 0, 16, WH, '#0c1424'); R(g, WW-16, 0, 16, WH, '#0c1424');
+  R(g, 15, 34, 1, WH-50, '#22324d'); R(g, WW-16, 34, 1, WH-50, '#22324d');
+  R(g, 0, 272, 96, 16, '#0c1424'); R(g, 128, 272, 96, 16, '#0c1424');
+  R(g, 16, 272, 80, 1, '#22324d'); R(g, 128, 272, 80, 1, '#22324d');
+  R(g, 96, 272, 32, 16, '#0d1522'); R(g, 94, 272, 2, 16, '#33415c'); R(g, 128, 272, 2, 16, '#33415c');
+  R(g, 100, 263, 24, 8, '#3a3226'); R(g, 102, 265, 20, 4, '#4a4030');
+  return c;
+}
+
+/* Sprites de mobiliario dibujados por código */
+function spCabinet(){ const [c,g]=mk(28,32); R(g,0,0,28,32,'#3d4a60'); R(g,0,0,28,2,'#56657e');
+  for (let i=0;i<3;i++){ R(g,2,4+i*9,24,8,'#465670'); R(g,2,4+i*9,24,1,'#5a6a85'); R(g,11,7+i*9,6,2,'#c9c3b8'); }
+  R(g,0,30,28,2,'#252e3d'); R(g,4,-1+1,9,2,'#e9e1d0'); R(g,16,0,8,2,'#f2c14e'); return c; }
+function spPlant(){ const [c,g]=mk(14,22); R(g,3,14,8,8,'#8a5a3c'); R(g,3,14,8,2,'#a06c48'); R(g,4,20,6,2,'#6e4530');
+  const L='#3f8f5a', L2='#5cc98a', L3='#2d6b45';
+  R(g,6,2,2,12,L3); R(g,2,4,4,3,L); R(g,8,3,4,3,L); R(g,1,8,4,3,L2); R(g,9,8,4,3,L2); R(g,4,0,3,3,L2); R(g,7,6,3,3,L); R(g,3,11,3,3,L3); R(g,8,11,3,3,L); return c; }
+function spCoffee(){ const [c,g]=mk(22,26); R(g,0,10,22,16,'#5b4030'); R(g,0,10,22,2,'#7b5a40'); R(g,2,14,18,1,'#4a3426');
+  R(g,3,0,10,12,'#2b2f3a'); R(g,4,1,8,4,'#3b4252'); R(g,6,6,4,1,'#2ec4b6'); R(g,6,8,4,3,'#1b1f29'); R(g,15,6,4,5,'#e9e1d0'); R(g,19,7,1,3,'#e9e1d0'); return c; }
+function spServers(){ const [c,g]=mk(28,50);
+  for (let k=0;k<2;k++){ const x=k*14; R(g,x,0,13,50,'#141a24'); R(g,x,0,13,2,'#2a3344');
+    for (let i=0;i<7;i++){ R(g,x+1,4+i*6,11,5,'#1d2532'); R(g,x+1,4+i*6,11,1,'#2a3344'); R(g,x+3,6+i*6,5,1,'#0b0f16'); } R(g,x,48,13,2,'#0b0f16'); }
+  return c; }
+function spLamp(){ const [c,g]=mk(12,36); R(g,1,0,10,7,'#f2c14e'); R(g,1,0,10,1,'#ffe39a'); R(g,2,6,8,1,'#b88a22'); R(g,5,7,2,25,'#59606e'); R(g,2,32,8,3,'#3b404b'); return c; }
+function spPrinter(){ const [c,g]=mk(28,28); R(g,0,10,28,18,'#3b4558'); R(g,0,10,28,2,'#56657e'); R(g,3,15,22,5,'#465670'); R(g,12,17,4,1,'#c9c3b8');
+  R(g,3,0,22,11,'#c9ced8'); R(g,3,0,22,2,'#e4e8ef'); R(g,6,3,16,2,'#3b4252'); R(g,8,-1+1,12,2,'#f8f6f1'); R(g,20,7,2,2,'#5cc98a'); return c; }
+function spSofa(){ const [c,g]=mk(44,30); R(g,0,4,44,14,'#2e4a6b'); R(g,0,4,44,2,'#3d5f87'); R(g,0,16,44,12,'#26405e'); R(g,2,16,19,8,'#335476'); R(g,23,16,19,8,'#335476');
+  R(g,0,8,4,20,'#22384f'); R(g,40,8,4,20,'#22384f'); R(g,4,28,4,2,'#151f2c'); R(g,36,28,4,2,'#151f2c'); R(g,6,10,8,6,'#f2c14e'); return c; }
+function spShelf(){ const [c,g]=mk(30,38); R(g,0,0,30,38,'#5b4030'); R(g,0,0,30,2,'#7b5a40'); R(g,2,3,26,32,'#24190f');
+  const cols=['#2ec4b6','#f2c14e','#ef7b7b','#5c7cd6','#5cc98a','#c9c3b8','#9b6fd1','#e0904a'];
+  for (let row=0; row<3; row++){ const by = 3+row*11; let x = 3, i = row*3;
+    while (x < 27){ const w = 2 + ((i*7+row)%2), h = 7 + ((i*5+row*3)%3); if (x + w > 27) break;
+      if ((i*13+row)%9 !== 4){ R(g, x, by+10-h, w, h, cols[(i*5+row*2)%cols.length]); R(g, x, by+10-h, w, 1, 'rgba(255,255,255,.25)'); }
+      x += w + ((i%4)===3 ? 1 : 0); i++; }
+    R(g, 2, by+10, 26, 1, '#7b5a40'); }
+  R(g,0,35,30,3,'#3e2c21'); R(g,20,4,6,4,'#3f8f5a'); return c; }
+function spDesk(kind){
+  const [c,g]=mk(64,46);
+  R(g,8,4,15,14,'#23324d'); R(g,8,4,15,2,'#2f4266'); // silla detrás
+  R(g,20,0,26,18,'#232834'); R(g,21,1,24,15,'#2c3240');
+  if (kind==='mensajes'){ R(g,22,2,22,13,'#145f5a'); R(g,27,4,12,8,'#dff7f3'); for (let i=0;i<6;i++){ R(g,27+i,4+i,1,1,'#145f5a'); R(g,38-i,4+i,1,1,'#145f5a'); } }
+  else { R(g,22,2,22,13,'#1d3f6e'); R(g,22,2,22,2,'#2b5a96'); R(g,25,6,6,4,'#f2c14e'); R(g,33,6,6,4,'#5cc98a'); R(g,25,11,6,3,'#2ec4b6'); R(g,33,11,6,3,'#ef7b7b'); }
+  R(g,31,16,4,3,'#1b1f29'); R(g,27,18,12,2,'#1b1f29');
+  R(g,0,16,64,16,'#7b5a40'); R(g,0,16,64,2,'#93704f'); R(g,0,31,64,1,'#4a3426'); R(g,0,32,64,8,'#5b4030'); R(g,4,34,24,5,'#664833'); R(g,14,36,4,1,'#c9c3b8');
+  R(g,2,40,4,6,'#3e2c21'); R(g,58,40,4,6,'#3e2c21');
+  R(g,22,23,20,5,'#c9ced8'); R(g,22,23,20,1,'#e4e8ef'); for (let i=0;i<9;i++) R(g,23+i*2,25,1,1,'#8d94a3'); R(g,46,24,3,4,'#c9ced8');
+  R(g,49,19,8,2,'#2b2f3a'); R(g,52,8,2,11,'#59606e'); R(g,48,4,10,5,'#f2c14e'); R(g,48,4,10,1,'#ffe39a'); R(g,49,8,8,1,'#b88a22');
+  if (kind==='mensajes'){ R(g,4,20,12,8,'#e9e1d0'); R(g,6,22,8,1,'#9aa3b5'); R(g,6,24,7,1,'#9aa3b5'); R(g,58,20,4,6,'#e9e1d0'); R(g,62,22,1,2,'#e9e1d0'); }
+  else { R(g,58,15,6,6,'#3f8f5a'); R(g,59,20,4,5,'#8a5a3c'); R(g,6,21,7,6,'#f2c14e'); R(g,7,23,5,1,'#8a6a10'); }
+  return c;
+}
+
+let BG, LIGHT, GLOW, SPR = {};
+const PROPS = [];      // objetos con sprite, colisión y orden de dibujo
+const SOLIDS = [];     // rectángulos de colisión [x,y,w,h]
+const TARGETS = [
+  { id:'mensajes', label:'Revisar computadora', name:'Computadora 1 · Centro de Mensajes', zone:[20,126,64,22], box:[20,84,64,46], mark:[53,78] },
+  { id:'apps',     label:'Revisar computadora', name:'Computadora 2 · Centro de Aplicaciones', zone:[140,190,64,22], box:[140,148,64,46], mark:[173,142] },
+  { id:'board',    label:'Leer la pizarra', name:'Carpeta del turno', zone:[78,34,68,22], box:[80,4,64,26] },
+  { id:'marta',    label:'Hablar con Marta', name:'Marta, analista sénior', circle:[164,70,26], box:[157,46,14,26] }
+];
+const MARTA = { x:164, y:70, dir:'down' };
+const LIGHTS = [ {x:74,y:94,r:30,a:.75}, {x:194,y:158,r:30,a:.75}, {x:106,y:90,r:72,a:.95}, {x:53,y:94,r:50,a:.85}, {x:173,y:158,r:50,a:.85}, {x:68,y:30,r:34,a:.5},
+  {x:161,y:28,r:34,a:.5}, {x:192,y:36,r:28,a:.5}, {x:112,y:22,r:40,a:.45}, {x:112,y:262,r:46,a:.55}, {x:164,y:62,r:30,a:.4} ];
+
+function buildWorld(){
+  BG = buildBG();
+  SPR = { cabinet:spCabinet(), plant:spPlant(), coffee:spCoffee(), servers:spServers(), lamp:spLamp(), printer:spPrinter(), sofa:spSofa(),
+          desk1:spDesk('mensajes'), desk2:spDesk('apps'), shelf:spShelf() };
+  const add = (spr, x, y, col) => { const s = SPR[spr]; PROPS.push({ spr, x, y, base: y + s.height }); if (col) SOLIDS.push(col); };
+  add('cabinet', 18, 20, [18,38,28,14]);
+  add('plant', 54, 30, [56,46,10,6]);
+  add('coffee', 150, 26, [150,40,22,12]);
+  add('servers', 178, 8, [178,40,28,18]);
+  add('lamp', 100, 82, [102,112,8,6]);
+  add('printer', 178, 98, [178,112,28,14]);
+  add('desk1', 20, 84, [20,104,64,22]);
+  add('desk2', 140, 148, [140,168,64,22]);
+  add('sofa', 18, 198, [18,210,44,18]);
+  add('shelf', 18, 148, [18,172,30,14]);
+  add('plant', 192, 240, [194,256,10,6]);
+  add('plant', 20, 240, [22,256,10,6]);
+  SOLIDS.push([0,0,WW,36],[0,0,16,WH],[WW-16,0,16,WH],[0,272,96,16],[128,272,96,16],[96,284,32,4],[157,64,14,8]);
+  // luz nocturna
+  let g; [LIGHT, g] = mk(WW, WH);
+  g.fillStyle = 'rgba(3,7,20,0.52)'; g.fillRect(0, 0, WW, WH);
+  g.globalCompositeOperation = 'destination-out';
+  for (const L of LIGHTS){ const gr = g.createRadialGradient(L.x,L.y,0,L.x,L.y,L.r); gr.addColorStop(0,'rgba(0,0,0,'+L.a+')'); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(L.x-L.r, L.y-L.r, L.r*2, L.r*2); }
+  [GLOW, g] = mk(WW, WH);
+  const glow = (x,y,r,col) => { const gr = g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,col); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x-r,y-r,r*2,r*2); };
+  glow(106,92,60,'rgba(242,193,78,.16)'); glow(74,94,24,'rgba(242,193,78,.14)'); glow(194,158,24,'rgba(242,193,78,.14)'); glow(53,94,40,'rgba(46,196,182,.14)'); glow(173,158,40,'rgba(80,140,230,.14)');
+}
+
+/* Personajes (pixel art procedural) */
+const PAL_PLAYER = { skin:'#e0ac83', hair:'#5a3824', shirt:'#3f9b62', shirt2:'#2d6b45', tee:'#1b2333', pants:'#2b3550', shoe:'#141922', badge:'#f2c14e', spiky:true };
+const PAL_MARTA  = { skin:'#c98d68', hair:'#9aa0ab', shirt:'#d9a520', shirt2:'#a67c12', pants:'#3a3048', shoe:'#141922', glasses:true, bun:true };
+function drawChar(g, x, y, dir, step, P, noShadow){
+  x = Math.round(x); y = Math.round(y);
+  if (!noShadow) R(g, x-5, y-1, 10, 3, 'rgba(0,0,0,.35)');
+  const side = dir === 'left' || dir === 'right';
+  if (side){ R(g, x-3+step, y-7, 3, 7, P.pants); R(g, x-step, y-7, 3, 7, P.pants); R(g, x-3+step, y-1, 3, 1, P.shoe); R(g, x-step, y-1, 3, 1, P.shoe); }
+  else { R(g, x-4, y-7, 3, 7-(step>0?1:0), P.pants); R(g, x+1, y-7, 3, 7-(step<0?1:0), P.pants); R(g, x-4, y-1-(step>0?1:0), 3, 1, P.shoe); R(g, x+1, y-1-(step<0?1:0), 3, 1, P.shoe); }
+  R(g, x-5, y-15, 10, 9, P.shirt); R(g, x+3, y-15, 2, 9, P.shirt2);
+  if (side){ R(g, x-1-step, y-14, 2, 6, P.shirt2); R(g, x-1-step, y-9, 2, 1, P.skin); }
+  else { R(g, x-7, y-14+(step>0?1:0), 2, 6, P.shirt2); R(g, x+5, y-14+(step<0?1:0), 2, 6, P.shirt2); R(g, x-7, y-9+(step>0?1:0), 2, 1, P.skin); R(g, x+5, y-9+(step<0?1:0), 2, 1, P.skin); }
+  if (P.tee && dir === 'down') R(g, x-1, y-15, 2, 9, P.tee);
+  if (P.badge && dir === 'down'){ R(g, x+2, y-13, 2, 3, P.badge); }
+  R(g, x-4, y-23, 8, 8, P.skin);
+  if (dir === 'up'){ R(g, x-4, y-24, 8, 8, P.hair); }
+  else if (dir === 'down'){ R(g, x-4, y-24, 8, 3, P.hair); R(g, x-4, y-21, 1, 3, P.hair); R(g, x+3, y-21, 1, 3, P.hair);
+    R(g, x-2, y-19, 1, 2, '#1b1b22'); R(g, x+1, y-19, 1, 2, '#1b1b22');
+    if (P.glasses){ R(g, x-3, y-20, 3, 1, '#2b2b2b'); R(g, x+0, y-20, 3, 1, '#2b2b2b'); } }
+  else { const f = dir === 'left' ? -1 : 1; R(g, x-4, y-24, 8, 3, P.hair); R(g, x-(f>0?4:-1), y-21, 3, 4, P.hair); R(g, x+(f>0?1:-2), y-19, 1, 2, '#1b1b22');
+    if (P.glasses) R(g, x+(f>0?0:-3), y-20, 3, 1, '#2b2b2b'); }
+  if (P.bun) R(g, x-1, y-26, 3, 2, P.hair);
+  if (P.spiky){ R(g, x-4, y-25, 2, 1, P.hair); R(g, x-1, y-26, 2, 2, P.hair); R(g, x+2, y-25, 2, 1, P.hair); }
+}
+
+const [CHC, chg] = mk(28, 34), [CHS, chs] = mk(28, 34);
+function drawCharOL(g, x, y, dir, step, P){
+  chg.clearRect(0,0,28,34); drawChar(chg, 14, 31, dir, step, P, true);
+  chs.globalCompositeOperation = 'source-over'; chs.clearRect(0,0,28,34); chs.drawImage(CHC, 0, 0);
+  chs.globalCompositeOperation = 'source-in'; chs.fillStyle = '#060a12'; chs.fillRect(0,0,28,34); chs.globalCompositeOperation = 'source-over';
+  const rx = Math.round(x), ry = Math.round(y), ox = rx-14, oy = ry-31;
+  R(g, rx-6, ry-1, 12, 3, 'rgba(0,0,0,.38)');
+  g.drawImage(CHS, ox-1, oy); g.drawImage(CHS, ox+1, oy); g.drawImage(CHS, ox, oy-1); g.drawImage(CHS, ox, oy+1);
+  g.drawImage(CHC, ox, oy);
+}
+const MOTES = Array.from({length:16}, (_, i) => ({ x: 84 + (i*29)%48, ph: i*1.7, v: 3 + (i%4) }));
+/* Cámara y tamaño */
+const view = { s:3, dpr:1, cssW:0, cssH:0, top:56, bottom:0 };
+const cam = { x:0, y:0 };
+function readSafe(){ const cs = getComputedStyle($('#probe')); return { t:parseFloat(cs.paddingTop)||0, b:parseFloat(cs.paddingBottom)||0 }; }
+function touchOn(){ if (settings.touch === 'on') return true; if (settings.touch === 'off') return false;
+  const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches; return coarse || touchDetected; }
+function resize(){
+  const w = window.innerWidth, h = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 3);
+  view.dpr = dpr; view.cssW = w; view.cssH = h;
+  cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); cv.style.width = w+'px'; cv.style.height = h+'px';
+  const safe = readSafe(), portrait = h >= w, tch = touchOn();
+  document.body.classList.toggle('touch', tch); document.body.classList.toggle('portrait', portrait);
+  const hudH = $('#hud').offsetHeight || (56 + safe.t);
+  document.documentElement.style.setProperty('--hudh', hudH + 'px');
+  view.top = (hudH + 4) * dpr;
+  view.bottom = (tch && portrait) ? (185 + safe.b) * dpr : 0;
+  const availW = cv.width, availH = cv.height - view.top - view.bottom;
+  const fit = Math.min(availW / WW, availH / WH) * (portrait ? 1 : 1.2);
+  view.s = Math.max(2, Math.round(fit), Math.ceil(1.3 * dpr));
+}
+function updateCamera(){
+  const vw = cv.width / view.s, vh = (cv.height - view.top - view.bottom) / view.s;
+  cam.x = WW <= vw ? -(vw - WW)/2 : clamp(player.x - vw/2, 0, WW - vw);
+  cam.y = WH <= vh ? -(vh - WH)/2 : clamp(player.y - 12 - vh/2, 0, WH - vh);
+}
+
+function screenState(st, x, y){
+  if (stationDone(st)){ R(ctx, x+22, y+2, 22, 13, '#1f6b45'); const cx = x+28, cy = y+8;
+    [[0,2],[1,3],[2,4],[3,3],[4,2],[5,1],[6,0],[7,-1]].forEach(([dx,dy]) => R(ctx, cx+dx, cy+dy, 1, 2, '#dff7e8')); }
+  else if (settings.reduce || Math.floor(gameTime*2)%2){ R(ctx, x+40, y+3, 3, 3, '#ef7b7b'); }
+}
+function render(){
+  const s = view.s;
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = '#050a14'; ctx.fillRect(0, 0, cv.width, cv.height);
+  updateCamera();
+  const ox = Math.round(-cam.x*s), oy = Math.round(-cam.y*s + view.top);
+  ctx.setTransform(s, 0, 0, s, ox, oy); ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(BG, 0, 0);
+  // pantallas: leve parpadeo de barrido
+  if (!settings.reduce){ const sy = Math.floor((gameTime*10)%13); R(ctx, 42, 86+sy, 22, 1, 'rgba(255,255,255,.12)'); R(ctx, 162, 150+sy, 22, 1, 'rgba(255,255,255,.12)'); }
+  const step = player.moving ? [0,1,0,-1][Math.floor(player.anim*9)%4] : 0;
+  const list = PROPS.map(p => ({ base:p.base, draw:() => { ctx.drawImage(SPR[p.spr], p.x, p.y); if (p.spr === 'desk1' || p.spr === 'desk2') screenState(p.spr === 'desk1' ? 'mensajes' : 'apps', p.x, p.y); } }));
+  list.push({ base:player.y, draw:() => drawCharOL(ctx, player.x, player.y, player.dir, step, PAL_PLAYER) });
+  list.push({ base:MARTA.y, draw:() => drawCharOL(ctx, MARTA.x, MARTA.y, MARTA.dir, 0, PAL_MARTA) });
+  list.sort((a,b) => a.base - b.base); for (const d of list) d.draw();
+  // LEDs de servidores
+  for (let k=0;k<2;k++) for (let i=0;i<7;i++){ const on = settings.reduce ? (i%2===0) : (Math.sin(gameTime*3 + i*1.7 + k*2) > 0.1);
+    R(ctx, 178+k*14+9, 14+i*6, 2, 1, on ? (i%3 ? '#5cc98a' : '#f2c14e') : '#26313f'); }
+  ctx.drawImage(LIGHT, 0, 0);
+  ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(GLOW, 0, 0); ctx.globalCompositeOperation = 'source-over';
+  if (!settings.reduce){ for (const m of MOTES){ const yy = 128 - ((gameTime*m.v + m.ph*7) % 46), xx = m.x + Math.sin(gameTime*.8 + m.ph)*3;
+    ctx.fillStyle = 'rgba(255,233,168,' + (0.25 + 0.25*Math.sin(gameTime*2 + m.ph)).toFixed(2) + ')'; ctx.fillRect(Math.round(xx), Math.round(yy), 1, 1); } }
+  // marcadores de objetos interactivos
+  const bob = settings.reduce ? 0 : Math.round(Math.sin(gameTime*4)*1.5);
+  for (const t of TARGETS){ if (!t.mark) continue; const [mx,my] = t.mark; const done = stationDone(t.id);
+    R(ctx, mx-4, my-9+bob, 9, 10, '#0b1222'); R(ctx, mx-3, my-8+bob, 7, 8, done ? '#5cc98a' : '#f2c14e');
+    if (done){ R(ctx, mx-2, my-4+bob, 1, 1, '#0b1222'); R(ctx, mx-1, my-3+bob, 1, 1, '#0b1222'); R(ctx, mx, my-4+bob, 1, 1, '#0b1222'); R(ctx, mx+1, my-5+bob, 1, 1, '#0b1222'); R(ctx, mx+2, my-6+bob, 1, 1, '#0b1222'); }
+    else { R(ctx, mx, my-7+bob, 1, 4, '#0b1222'); R(ctx, mx, my-2+bob, 1, 1, '#0b1222'); } }
+  // burbuja de Marta
+  R(ctx, MARTA.x+5, MARTA.y-34+bob, 9, 6, '#eef2f7'); R(ctx, MARTA.x+6, MARTA.y-28+bob, 2, 2, '#eef2f7');
+  R(ctx, MARTA.x+7, MARTA.y-32+bob, 1, 1, '#1b2333'); R(ctx, MARTA.x+9, MARTA.y-32+bob, 1, 1, '#1b2333'); R(ctx, MARTA.x+11, MARTA.y-32+bob, 1, 1, '#1b2333');
+  // resaltado discreto del objetivo cercano
+  if (nearTarget && isPlaying()){ const [bx,by,bw,bh] = nearTarget.box; const a = settings.reduce ? .8 : .55 + Math.sin(gameTime*6)*.3;
+    ctx.fillStyle = 'rgba(255,255,255,'+a.toFixed(2)+')';
+    const L = 4; [[bx-2,by-2],[bx+bw+1,by-2],[bx-2,by+bh+1],[bx+bw+1,by+bh+1]].forEach(([cx,cy],i) => {
+      const sx = i%2 ? -1 : 1, sy = i>1 ? -1 : 1; ctx.fillRect(sx>0?cx:cx-L+1, cy, L, 1); ctx.fillRect(cx, sy>0?cy:cy-L+1, 1, L); }); }
+}
+
+/* =========================================================
+   3. MOVIMIENTO, COLISIONES E INTERACCIÓN
+   ========================================================= */
+const keys = {};
+const joy = { x:0, y:0, id:null, cx:0, cy:0, r:46 };
+function hitsSolid(x, y){ const l = x-5, r = x+5, t = y-4, b = y+1;
+  for (const [sx,sy,sw,sh] of SOLIDS) if (r > sx && l < sx+sw && b > sy && t < sy+sh) return true; return false; }
+function inRect(x, y, [rx,ry,rw,rh]){ return x >= rx && x <= rx+rw && y >= ry && y <= ry+rh; }
+function findTarget(){
+  for (const t of TARGETS){
+    if (t.zone && inRect(player.x, player.y, t.zone)) return t;
+    if (t.circle && Math.hypot(player.x - t.circle[0], player.y - t.circle[1]) < t.circle[2]) return t;
+  } return null;
+}
+function update(dt){
+  let ix = 0, iy = 0;
+  if (keys.left) ix--; if (keys.right) ix++; if (keys.up) iy--; if (keys.down) iy++;
+  ix += joy.x; iy += joy.y;
+  const m = Math.hypot(ix, iy); if (m > 1){ ix /= m; iy /= m; }
+  if (m > 0.12){
+    const dx = ix*SPEED*dt, dy = iy*SPEED*dt;
+    if (!hitsSolid(player.x+dx, player.y)) player.x += dx;
+    if (!hitsSolid(player.x, player.y+dy)) player.y += dy;
+    player.dir = Math.abs(ix) > Math.abs(iy) ? (ix < 0 ? 'left' : 'right') : (iy < 0 ? 'up' : 'down');
+    player.anim += dt * Math.min(1, m); player.moving = true;
+  } else player.moving = false;
+  MARTA.dir = Math.abs(player.x-MARTA.x) > Math.abs(player.y-MARTA.y) ? (player.x < MARTA.x ? 'left' : 'right') : (player.y < MARTA.y ? 'up' : 'down');
+  const t = findTarget();
+  if (t !== nearTarget){ nearTarget = t; updatePrompt(); }
+}
+function updatePrompt(){
+  const p = $('#prompt'), a = $('#act');
+  if (nearTarget){
+    const done = (nearTarget.id === 'mensajes' || nearTarget.id === 'apps') && stationDone(nearTarget.id);
+    p.innerHTML = (touchOn() ? '' : '<kbd>E</kbd> / ') + 'Interactuar — ' + esc(nearTarget.label) + '<small>' + esc(nearTarget.name) + (done ? ' · completada ✔' : '') + '</small>';
+    p.classList.add('on'); a.classList.remove('idle'); a.setAttribute('aria-label', 'Interactuar: ' + nearTarget.label);
+  } else { p.classList.remove('on'); a.classList.add('idle'); a.setAttribute('aria-label', 'Interactuar (acércate a un objeto)'); }
+}
+function interact(){
+  if (!isPlaying()) return;
+  if (!nearTarget){ toast('Acércate a una computadora, a la pizarra o a Marta.'); return; }
+  sfx('blip');
+  const id = nearTarget.id;
+  if (id === 'mensajes' || id === 'apps') openTerminal(id);
+  else if (id === 'board') openScreen('notes');
+  else if (id === 'marta') talkMarta();
+}
+function talkMarta(){
+  const dm = stationDone('mensajes'), da = stationDone('apps');
+  let lines;
+  if (dm && da) lines = [{text:'¡Completaste las dos computadoras! Buen turno, Alex.'},{text:'¿Revisamos juntos el informe? Puedes verlo cuando quieras desde la Pausa.', end:'Ver informe'}];
+  else if (dm || da) lines = [{text:'¡Una computadora lista! Te falta la ' + (dm ? 'Computadora 2, el Centro de Aplicaciones, junto a la impresora.' : 'Computadora 1, el Centro de Mensajes, a la izquierda.')},
+    {text: dm ? 'En aplicaciones, mira el comportamiento y los permisos: que algo funcione no significa que sea seguro.' : 'En los correos, compara la dirección completa y el destino de los botones con la Carpeta del turno.'}];
+  else { const tips = ['Antes de decidir, pulsa «Inspeccionar detalles»: la dirección completa y el destino real de los botones no se ven a simple vista.',
+    'Un dominio puede contener un nombre conocido y aun así ser otro. Fíjate en lo que va justo antes de «.test».',
+    'La Carpeta del turno de la pizarra tiene datos que te servirán: compras, proveedores y dominios oficiales.'];
+    lines = [{text: tips[Math.floor(Math.random()*tips.length)]}]; }
+  showDialog(lines, (dm && da) ? () => openFinal() : null);
+}
+
+/* =========================================================
+   4. GESTIÓN DE TARJETAS Y GESTOS   +   8. RETROALIMENTACIÓN
+   ========================================================= */
+const T = { st:null, phase:null, card:null, locked:false, anim:false, token:0 };
+const tMain = $('#tMain'), tFoot = $('#tFoot');
+
+function openTerminal(st){
+  T.st = st; T.token++; T.locked = false; T.anim = false; closeInspect();
+  $('#tTitle').textContent = STATIONS[st].pc + ' · ' + STATIONS[st].name;
+  openScreen('term'); sfx('open', '♪ Se enciende la computadora');
+  if (stationDone(st)) showStationResults(); else showBrief();
+}
+function renderHeader(){
+  const st = T.st, n = S.progress[st], dots = $('#tDots');
+  $('#tSub').textContent = stationDone(st) ? 'Misión completada · ' + hits(st) + '/6 aciertos' : 'Caso ' + Math.min(n+1, 6) + ' de 6 · Seguridad ' + S.security;
+  dots.innerHTML = casesOf(st).map((c,i) => '<i class="' + (S.answers[c.id] ? 'done' : (i === n ? 'cur' : '')) + '"></i>').join('');
+}
+function showBrief(){
+  T.phase = 'brief'; renderHeader();
+  const st = STATIONS[T.st], n = S.progress[T.st];
+  tMain.innerHTML = '<div class="scroll"><div class="brief"><p class="big">' + (T.st === 'mensajes' ? '📨 Misión 1' : '📱 Misión 2') + ' · ' + esc(st.name) + '</p>' +
+    '<p>' + st.brief + '</p>' +
+    '<div class="tut"><b>Cómo decidir</b><ol>' +
+    '<li>Lee la tarjeta completa (desliza hacia arriba o abajo si es larga).</li>' +
+    '<li>Pulsa <b>🔍 Inspeccionar detalles</b> para ver dirección, destino de enlaces, permisos o contexto.' + (T.st === 'mensajes' ? ' También puedes tocar el remitente o el botón del correo para ver adónde apuntan.' : '') + ' <b>💡 Guía</b> resume qué revisar.</li>' +
+    '<li>Arrastra la tarjeta: <b>◀ izquierda = ' + esc(st.left) + '</b>, <b>derecha ▶ = ' + esc(st.right) + '</b>. También puedes usar los botones o las teclas ← →.</li></ol></div>' +
+    (n > 0 ? '<p style="margin-top:12px;color:var(--muted)">Llevas ' + n + ' de 6 casos. Continúas donde lo dejaste.</p>' : '') + '</div></div>';
+  tFoot.innerHTML = '<button class="btn pri block" id="bStart">' + (n > 0 ? 'Continuar con el caso ' + (n+1) : 'Comenzar misión') + ' ▶</button>';
+  $('#bStart').onclick = () => { sfx('blip'); showCard(); };
+  focusLater('#bStart');
+}
+function currentCase(){ return casesOf(T.st)[S.progress[T.st]]; }
+
+function emailHTML(c, reveal){
+  const e = c.email;
+  const body = e.body.map(b => typeof b === 'string' ? '<p>' + esc(b).replace(/\n/g,'<br>') + '</p>' : '<ul>' + b.list.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul>').join('');
+  const from = reveal ? esc(e.fromName) + '<div class="mmeta">&lt;' + esc(e.fromAddr) + '&gt;</div>'
+    : '<span tabindex="0" data-peek="' + esc('Dirección completa del remitente: ' + e.fromAddr) + '">' + esc(e.fromName) + '</span>';
+  return '<div class="cin"><div class="ctag"><span>Correo ' + c.num + ' de 6</span><span>Bandeja de entrada</span></div>' +
+    '<div class="mhead"><div class="avatar" style="background:' + e.avatarBg + '">' + esc(e.avatar) + '</div><div><div class="mfrom">' + from + '</div>' +
+    '<div class="mmeta">para ' + esc(e.to) + ' · ' + esc(e.date) + (reveal && e.replyTo ? '<br>Responder a: ' + esc(e.replyTo) : '') + '</div></div></div>' +
+    '<h3 class="msub">' + esc(e.subject) + '</h3><div class="mbody">' + body + '</div>' +
+    (e.attachment ? '<div class="attach"><div class="fileico">' + esc(e.attachment.ext) + '</div><div><b>' + esc(e.attachment.name) + '</b><small>Adjunto · ' + esc(e.attachment.size) + ' · representación visual, no se puede abrir</small></div></div>' : '') +
+    (e.button ? (reveal ? '<div class="mbtn">' + esc(e.button.label) + '</div><div class="inert">Destino: ' + esc(e.button.dest) + '</div>'
+      : '<div class="mbtn" tabindex="0" role="button" data-peek="' + esc('Destino real del botón: ' + e.button.dest) + '">' + esc(e.button.label) + '</div><div class="inert">Toca el botón o pasa el cursor para ver su destino real. No se abre nada.</div>') : '') +
+    '<div class="endm">— Fin del mensaje —</div></div>';
+}
+function renderCase(c, reveal){ return c.type === 'email' ? emailHTML(c, reveal) : appHTML(c); }
+function findTextIndex(html, t){
+  let from = 0;
+  for (;;){ const i = html.indexOf(t, from); if (i < 0) return -1; if (html.lastIndexOf('<', i) <= html.lastIndexOf('>', i)) return i; from = i + 1; }
+}
+function applyMarks(html, marks){
+  if (!marks) return html;
+  const list = marks.map(m => ({ t:esc(m[0]), k:m[1], tip:m[2] })).sort((a,b) => b.t.length - a.t.length);
+  const tokens = [];
+  for (const m of list){
+    const i = findTextIndex(html, m.t); if (i < 0) continue;
+    tokens.push('<span class="mk ' + m.k + '">' + m.t + '<span class="tip">' + esc(m.tip) + '</span></span>');
+    html = html.slice(0, i) + '\u0001' + (tokens.length-1) + '\u0002' + html.slice(i + m.t.length);
+  }
+  return html.replace(/\u0001(\d+)\u0002/g, (_, n) => tokens[+n]);
+}
+const LEGEND = '<div class="legend"><span><i style="background:#c0392b"></i>Señal de riesgo</span><span><i style="background:#1f8a55"></i>Señal de confianza</span><span><i style="background:#a67c12"></i>Detalle engañoso o neutro</span></div>';
+function appHTML(c){
+  const a = c.app;
+  let h = '<div class="cin"><div class="ctag"><span>Caso ' + c.num + ' de 6</span><span>' + esc(a.kind) + '</span></div>';
+  if (a.bar) h += '<div class="bar">' + esc(a.bar) + '</div>';
+  if (a.title) h += '<div class="apph">' + (a.icon ? '<div class="appico" style="background:' + a.icon.bg + '">' + esc(a.icon.t) + '</div>' : '') + '<div><div class="appt">' + esc(a.title) + '</div><div class="apps">' + esc(a.sub || '') + '</div></div></div>';
+  if (a.rating) h += '<div class="rate">' + esc(a.rating) + '</div>';
+  for (const b of a.blocks){
+    if (b.t === 'p') h += '<p class="blk">' + esc(b.text) + '</p>';
+    else if (b.t === 'list') h += '<div class="blk"><h5>' + esc(b.title) + '</h5><ul>' + b.items.map(i => '<li>' + esc(i) + '</li>').join('') + '</ul></div>';
+    else if (b.t === 'meta') h += '<div class="blk meta">' + b.items.map(([k,v]) => '<span>' + esc(k) + '</span><span>' + esc(v) + '</span>').join('') + '</div>';
+    else if (b.t === 'buttons') h += '<div class="mock" aria-hidden="true">' + b.items.map(i => '<span>' + esc(i) + '</span>').join('') + '</div><div class="inert">Botón inerte: nada se instala ni se descarga.</div>';
+    else if (b.t === 'alert') h += '<div class="alertx"><b>' + esc(b.title) + '</b>' + esc(b.text) + '<div class="mock" aria-hidden="true">' + b.buttons.map((i,k) => '<span class="' + (k ? 'alt' : '') + '">' + esc(i) + '</span>').join('') + '</div></div>';
+    else if (b.t === 'sys') h += '<div class="alertsys"><b>' + esc(b.title) + '</b>' + esc(b.text).replace(/\n/g,'<br>') + '<div class="mock" aria-hidden="true">' + b.buttons.map((i,k) => '<span class="' + (k ? 'alt' : '') + '">' + esc(i) + '</span>').join('') + '</div></div>';
+    else if (b.t === 'file') h += '<div class="attach"><div class="fileico">' + esc(b.ext) + '</div><div><b>' + esc(b.name) + '</b><small>' + esc(b.size) + ' · representación visual</small></div></div>';
+    else if (b.t === 'quote') h += '<p class="blk quote">' + esc(b.text) + '</p>';
+    else if (b.t === 'ad') h += '<div class="blk adban"><em>Anuncio</em>' + esc(b.text) + '</div>';
+  }
+  return h + '<div class="endm">— Fin del caso —</div></div>';
+}
+function showCard(){
+  const c = currentCase(); if (!c){ showStationResults(); return; }
+  T.phase = 'card'; T.card = c; T.locked = false; T.anim = false; renderHeader();
+  const st = STATIONS[T.st];
+  tMain.innerHTML = '<div class="stack"><div class="ghost"></div><div class="stamp l">' + esc(st.stampL) + '</div><div class="stamp r">' + esc(st.stampR) + '</div>' +
+    '<article class="card" id="card" tabindex="0" aria-label="' + esc('Caso ' + c.num + ': lee el contenido y decide') + '">' + renderCase(c, false) + '</article><div class="peek" role="status" aria-live="polite"></div></div>';
+  tFoot.innerHTML = '<div class="irow"><button class="ibtn" id="bInsp">🔍 Inspeccionar detalles</button><button class="ibtn" id="bGuide" aria-label="Guía de señales">💡 Guía</button></div>' +
+    '<div class="drow"><button class="dbtn l" id="bL" aria-label="Clasificar como ' + esc(st.left) + '">◀ ' + esc(st.left) + '</button>' +
+    '<button class="dbtn r" id="bR" aria-label="Clasificar como ' + esc(st.right) + '">' + esc(st.right) + ' ▶</button></div>' +
+    '<div class="khint">Teclado: ← / → para decidir · I inspeccionar · G guía</div>';
+  $('#bInsp').onclick = openInspect; $('#bGuide').onclick = openGuide;
+  $('#bL').onclick = () => decide('sospechoso');
+  $('#bR').onclick = () => decide('legitimo');
+  bindDrag($('#card'));
+  focusLater('#card');
+}
+function bindDrag(card){
+  const stamps = tMain.querySelectorAll('.stamp'), bL = $('#bL'), bR = $('#bR');
+  let id = null, sx = 0, sy = 0, dx = 0, axis = null, w = 300;
+  const th = () => Math.min(130, w * 0.32);
+  const paint = () => {
+    card.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / w * 9).toFixed(2) + 'deg)';
+    const k = dx / th();
+    stamps[0].style.opacity = clamp(-k, 0, 1); stamps[1].style.opacity = clamp(k, 0, 1);
+    bL.classList.toggle('hot', k <= -1); bR.classList.toggle('hot', k >= 1);
+  };
+  const reset = () => { dx = 0; card.classList.add('anim'); paint(); card.style.transform = ''; setTimeout(() => card.classList.remove('anim'), 280); };
+  card.addEventListener('pointerdown', e => {
+    if (T.locked || T.phase !== 'card' || top() !== 'term' || inspOpen()) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.pointerType === 'touch') touchDetected = true;
+    id = e.pointerId; sx = e.clientX; sy = e.clientY; dx = 0; axis = null; w = card.getBoundingClientRect().width || 300;
+  });
+  card.addEventListener('pointermove', e => {
+    if (e.pointerId !== id) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (!axis){
+      if (Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my) * 1.3){ axis = 'x'; try{ card.setPointerCapture(id); }catch(_){} card.classList.add('dragging'); card.classList.remove('anim'); }
+      else if (Math.abs(my) > 10){ axis = 'y'; id = null; return; }
+      else return;
+    }
+    if (axis === 'x'){ e.preventDefault(); dx = mx; paint(); }
+  });
+  const end = e => {
+    if (e.pointerId !== id) return; id = null;
+    if (axis === 'x'){
+      card.classList.remove('dragging');
+      if (e.type === 'pointerup' && Math.abs(dx) >= th() && !T.locked) decide(dx < 0 ? 'sospechoso' : 'legitimo', dx);
+      else reset();
+    } else if (axis === null && e.type === 'pointerup'){
+      const el = e.target && e.target.closest && e.target.closest('[data-peek]'); if (el) showPeek(el.dataset.peek);
+    }
+    axis = null;
+  };
+  card.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const el = e.target.closest && e.target.closest('[data-peek]'); if (el) showPeek(el.dataset.peek, true); });
+  card.addEventListener('focusin', e => { const el = e.target.closest && e.target.closest('[data-peek]'); if (el) showPeek(el.dataset.peek, true); });
+  card.addEventListener('pointerup', end); card.addEventListener('pointercancel', end);
+  card.addEventListener('lostpointercapture', e => { if (id !== null && e.pointerId === id){ id = null; axis = null; card.classList.remove('dragging'); reset(); } });
+}
+let peekT = 0;
+function showPeek(txt, quiet){
+  const p = tMain.querySelector('.peek'); if (!p) return;
+  p.textContent = '🔗 ' + txt; p.classList.add('on'); if (!quiet) sfx('blip');
+  clearTimeout(peekT); peekT = setTimeout(() => p.classList.remove('on'), 4500);
+}
+function popScore(d){
+  const el = document.createElement('div'); el.className = 'pop ' + (d > 0 ? 'p' : 'n');
+  el.textContent = (d > 0 ? '+' : '−') + Math.abs(d) + ' 🛡'; el.setAttribute('aria-hidden','true');
+  document.body.appendChild(el); setTimeout(() => el.remove(), 1350);
+}
+const GUIDE = {
+  mensajes:['<b>Dominio exacto del remitente.</b> El nombre visible se puede falsificar; mira la dirección completa. Lo que importa es lo que va justo antes de <b>.test</b>.',
+    '<b>Destino real de botones y enlaces.</b> Un nombre conocido al principio (banco.otro-sitio.test) no hace oficial al sitio.',
+    '<b>Qué te pide.</b> Contraseñas, códigos, pagos o documentos por correo son la señal más fuerte de fraude.',
+    '<b>Presión.</b> Plazos cortos, amenazas o premios buscan que actúes sin pensar. Pero un aviso legítimo también puede ser urgente.',
+    '<b>Adjuntos.</b> ¿Lo esperabas? Desconfía de dobles extensiones (.pdf.htm) y de «habilitar contenido».',
+    '<b>Coherencia con la Carpeta del turno.</b> Pedidos, fechas, proveedores y equipos reales.',
+    '<b>El candado HTTPS</b> solo cifra la conexión: no prueba quién está detrás.',
+    '<b>Spam ≠ phishing.</b> La publicidad no pedida también va a la izquierda, aunque no robe datos.'],
+  apps:['<b>Procedencia.</b> Tienda oficial o sitio del fabricante, no anuncios ni portales de terceros.',
+    '<b>Permisos proporcionales.</b> ¿Necesita una app de clima tu ubicación? Sí. ¿Una de notas tus contactos? No.',
+    '<b>Nunca desactives defensas</b> (antivirus, protección en tiempo real) para instalar algo.',
+    '<b>Una alerta dentro de una página web</b> no es tu sistema: no puede analizar tu equipo.',
+    '<b>Comportamiento.</b> Cambios en el navegador, pestañas o extensiones que nadie pidió = adware, aunque la app «funcione».',
+    '<b>Publicidad identificada y controlable</b> dentro de la propia app es normal en apps gratuitas.',
+    '<b>Firma y fabricante.</b> El editor verificado debe coincidir con el desarrollador. Pedir permiso de administrador es normal en instaladores.']
+};
+function openGuide(){
+  if (!T.st || T.locked) return;
+  $('#iTitle').textContent = '💡 Guía: qué revisar';
+  $('#iBody').innerHTML = '<p class="note">Úsala como lista de comprobación. No revela la respuesta de ningún caso.</p><ul class="guide">' + GUIDE[T.st].map(x => '<li>' + x + '</li>').join('') + '</ul>';
+  $('#insp').classList.add('on'); $('#iBody').scrollTop = 0; sfx('blip'); focusLater('#iClose');
+}
+function decide(choice, fromDx){
+  if (T.locked || T.phase !== 'card' || !T.card) return;
+  T.locked = true; T.anim = true;
+  const c = T.card, card = $('#card'), tok = T.token;
+  tFoot.querySelectorAll('button').forEach(b => b.disabled = true);
+  const r = applyAnswer(c, choice);      // se registra una sola vez
+  sfx('swipe');
+  const dir = choice === 'sospechoso' ? -1 : 1;
+  const stamps = tMain.querySelectorAll('.stamp'); if (stamps[dir < 0 ? 0 : 1]) stamps[dir < 0 ? 0 : 1].style.opacity = 1;
+  const dur = settings.reduce ? 60 : 300;
+  if (card){ card.classList.add('anim');
+    if (settings.reduce) card.style.opacity = '0';
+    else { card.style.transform = 'translateX(' + (dir * (card.offsetWidth * 1.3 + 40)) + 'px) rotate(' + (dir*18) + 'deg)'; card.style.opacity = '0'; } }
+  setTimeout(() => { if (tok !== T.token) return; T.anim = false; showFeedback(c, choice, r || evaluate(c, choice)); }, dur);
+}
+function showFeedback(c, choice, r){
+  T.phase = 'feedback'; renderHeader();
+  const st = STATIONS[c.station];
+  const yourLabel = choice === 'legitimo' ? st.right : st.left;
+  const last = S.progress[c.station] >= 6;
+  tMain.innerHTML = '<div class="scroll"><div class="fb" aria-live="polite">' +
+    '<div class="verdict ' + (r.correct ? 'ok' : 'ko') + '"><span class="vi">' + (r.correct ? '✔' : '✘') + '</span><div><b>' + (r.correct ? '¡Correcto!' : 'Respuesta incorrecta') + '</b><small>' + esc(c.title) + ' · Dificultad ' + esc(c.difficulty.toLowerCase()) + '</small></div></div>' +
+    '<div class="fbrow"><div><small>Tu respuesta</small><b>' + esc(yourLabel) + '</b></div><div><small>Clasificación correcta</small><b>' + esc(CAT_LABEL[c.category]) + '</b></div>' +
+    '<div><small>Seguridad de la oficina</small><b>' + (r.delta > 0 ? '+' : '−') + Math.abs(r.delta) + ' → ' + S.security + '</b></div></div>' +
+    (r.dangerous ? '<div class="warnbox">⚠ Aceptaste como seguro un caso peligroso. En una oficina real, esto podría haber permitido un robo de datos o una infección. Se registra como «caso peligroso aceptado».</div>' : '') +
+    (!r.correct && c.category === 'spam' ? '<div class="warnbox">Era publicidad no solicitada: no roba datos, pero tampoco es un correo que la oficina pidiera.</div>' : '') +
+    '<h4>📍 Señales dentro del caso</h4>' + LEGEND + '<div class="review-card">' + applyMarks(renderCase(c, true), c.marks) + '</div>' +
+    '<h4>🔎 Pistas clave</h4><ul>' + c.clues.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+    '<h4>🧭 ¿Qué hacer en la vida real?</h4><p>' + esc(c.realLife) + '</p></div></div>';
+  tFoot.innerHTML = '<button class="btn pri block" id="bNext">' + (last ? 'Entendido, ver resultados ▶' : 'Entendido, siguiente caso ▶') + '</button>';
+  $('#bNext').onclick = () => { sfx('blip'); if (stationDone(T.st)) showStationResults(); else showCard(); };
+  focusLater('#bNext');
+  setTimeout(() => r.correct ? sfx('good', '♪ Sonido de acierto') : sfx('bad', '♪ Sonido de error'), 40);
+  popScore(r.delta);
+}
+function showStationResults(){
+  T.phase = 'results'; renderHeader();
+  const st = T.st, h = hits(st), cs = casesOf(st);
+  const msg = h === 6 ? '¡Impecable! Leíste cada detalle como un analista con experiencia.'
+    : h >= 4 ? 'Buen trabajo. Repasa las pistas de los casos que se escaparon: son las trampas más comunes.'
+    : 'Cada error es una pista aprendida. Revisa las explicaciones y vuelve a intentarlo: así se entrena el ojo.';
+  tMain.innerHTML = '<div class="scroll"><div class="fb"><h4 style="margin-top:0">📋 Resultados · ' + esc(STATIONS[st].name) + '</h4>' +
+    '<div class="res-num">' + h + ' / 6</div><div class="stats"><div><small>Aciertos</small><b>' + h + '</b></div><div><small>Errores</small><b>' + (6-h) + '</b></div><div><small>Seguridad actual</small><b>' + S.security + '</b></div></div>' +
+    '<p style="margin-top:12px">' + esc(msg) + '</p><h4>🧠 Pistas importantes aprendidas</h4><ul class="lessons">' +
+    cs.map(c => { const a = S.answers[c.id]; return '<li><span class="' + (a && a.correct ? 'ok-t">✔' : 'ko-t">✘') + '</span> <b>' + esc(c.title) + ':</b> ' + esc(c.lesson) + '</li>'; }).join('') + '</ul>' +
+    (allDone() ? '<p style="color:var(--yellow)">Completaste las dos computadoras. Al regresar, Marta te entregará el informe del turno.</p>' : '<p style="color:var(--muted)">Al regresar puedes ir a la otra computadora.</p>') + '</div></div>';
+  tFoot.innerHTML = '<button class="btn pri block" id="bOffice">◀ Regresar a la oficina</button>';
+  $('#bOffice').onclick = closeTerminal;
+  focusLater('#bOffice');
+  if (!T.resPlayed){ sfx('note', '♪ Misión completada'); }
+}
+function closeTerminal(){
+  if (T.anim) return;
+  T.token++; T.phase = null; closeInspect(); closeScreen('term');
+  updatePrompt(); checkFinish();
+}
+function checkFinish(){
+  if (allDone() && !S.finalShown){
+    S.finalShown = true; saveGame();
+    showDialog([{text:'¡Lo lograste, Alex! Revisaste los 12 casos del turno.'},{text:'Te preparé el informe: aciertos, seguridad de la oficina y lo que aprendimos hoy.', end:'Ver informe'}], () => openFinal());
+  }
+}
+
+/* Inspección */
+function inspOpen(){ return $('#insp').classList.contains('on'); }
+function openInspect(){
+  const c = T.card; if (!c || T.phase !== 'card' || T.locked) return;
+  let rows;
+  if (c.type === 'email'){
+    const e = c.email;
+    const full = e.body.map(b => typeof b === 'string' ? b : b.list.map(i => '• ' + i).join('\n')).join('\n\n');
+    rows = [['Nombre visible del remitente', e.fromName], ['Dirección completa del remitente', e.fromAddr]];
+    if (e.replyTo) rows.push(['Responder a', e.replyTo]);
+    rows.push(['Para', e.to], ['Fecha', e.date], ['Asunto', e.subject],
+      ['Archivo adjunto', e.attachment ? e.attachment.name + ' (' + e.attachment.size + ') — no se abre' : 'Ninguno'],
+      ['Destino declarado del botón o enlace', e.button ? '«' + e.button.label + '» → ' + e.button.dest : 'El mensaje no contiene botones ni enlaces.']);
+    if (c.extra) rows.push(...c.extra);
+    rows.push(['Contexto previo relevante', c.context], ['Mensaje íntegro', full]);
+  } else rows = c.inspect;
+  $('#iTitle').textContent = '🔍 Inspeccionar detalles';
+  $('#iBody').innerHTML = '<p class="note">Datos para analizar. Nada se abre, se instala ni se navega: todo es texto simulado.</p><dl>' +
+    rows.map(([k,v]) => '<dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd>').join('') + '</dl>';
+  $('#insp').classList.add('on'); $('#iBody').scrollTop = 0; sfx('blip');
+  focusLater('#iClose');
+}
+function closeInspect(){ const el = $('#insp'); if (el.classList.contains('on')){ el.classList.remove('on'); const c = $('#bInsp'); if (c) c.focus({preventScroll:true}); } }
+$('#iClose').onclick = closeInspect;
+
+/* =========================================================
+   10. RESULTADOS FINALES, REVISIÓN Y REINICIO
+   ========================================================= */
+function openFinal(){
+  const cat = finalCategory(), h = hits();
+  const T_ = { protegida:['OFICINA PROTEGIDA','Tu análisis mantuvo la oficina a salvo. Revisaste detalles, comparaste con el contexto y no dejaste pasar ningún engaño peligroso.'],
+    moderada:['ALERTA MODERADA','La oficina sigue en pie, pero algunos casos se escaparon. Repasa las pistas: dominios parecidos, adjuntos inesperados y comportamientos que nadie autorizó.'],
+    critico:['INCIDENTE CRÍTICO','Algunas decisiones, en la vida real, podrían haber abierto la puerta a un ataque. Nadie nace sabiendo: lo importante es aprender a reconocer las señales.'] }[cat];
+  $('#finalBox').innerHTML = '<h2>📊 Informe del turno</h2><p class="sub">Nodo Faro · Analista: Alex</p>' +
+    '<div class="badge ' + cat + '"><b>' + T_[0] + '</b></div><p class="rank">Rango del turno: <b>' + ({protegida:'Guardián del Nodo', moderada:'Analista en ascenso', critico:'Aprendiz de analista'})[cat] + '</b></p><p>' + T_[1] + '</p>' +
+    '<div class="stats"><div><small>Aciertos</small><b>' + h + '/12</b></div><div><small>Seguridad de la oficina</small><b>' + S.security + '/100</b></div>' +
+    '<div><small>Casos peligrosos aceptados como seguros</small><b>' + S.danger + '</b></div></div>' +
+    '<p class="sub" style="margin-top:10px">Los aciertos cuentan respuestas correctas; la seguridad mide el impacto de cada error (aceptar algo peligroso cuesta mucho más que desconfiar de algo legítimo).</p>' +
+    (cat === 'critico' ? '<h3>Consejos para la próxima vez</h3><ul><li><b>Detente</b> antes de hacer clic: la prisa es la mejor aliada del engaño.</li><li><b>No abras</b> enlaces ni archivos sospechosos, ni desactives tus protecciones.</li><li><b>Verifica</b> por otro canal: la app oficial, la dirección escrita a mano o un teléfono conocido.</li><li><b>Consulta</b> a una persona de confianza o al equipo de soporte.</li></ul>' : '') +
+    '<div class="stack-btns"><button class="btn pri block" id="fRev">🗂 Revisar los 12 casos</button><button class="btn block" id="fAgain">⟳ Jugar nuevamente</button>' +
+    '<button class="btn block" id="fOffice">◀ Volver a la oficina</button><button class="btn block" id="fMenu">⌂ Menú principal</button></div>';
+  $('#fRev').onclick = openReview;
+  $('#fAgain').onclick = () => { closeAll(); startNewGame(); };
+  $('#fOffice').onclick = () => closeScreen('final');
+  $('#fMenu').onclick = goMenu;
+  openScreen('final');
+  sfx('note', '♪ Informe listo');
+}
+function openReview(){
+  const ans = c => { const a = S.answers[c.id]; if (!a) return 'Sin responder'; const st = STATIONS[c.station]; return (a.choice === 'legitimo' ? st.right : st.left) + (a.correct ? ' ✔' : ' ✘'); };
+  $('#reviewBox').innerHTML = '<h2>🗂 Revisión de casos</h2><p class="sub">Consulta sin modificar la puntuación.</p>' +
+    ['mensajes','apps'].map(st => '<h3>' + esc(STATIONS[st].pc + ' · ' + STATIONS[st].name) + '</h3>' + casesOf(st).map(c => {
+      const a = S.answers[c.id];
+      return '<details class="rev"><summary><span class="' + (a ? (a.correct ? 'ok-t">✔' : 'ko-t">✘') : '">•') + '</span> ' + esc(c.num + '. ' + c.title) + '</summary>' +
+        '<p><b>Descripción:</b> ' + esc(c.summary) + '</p><p><b>Tu respuesta:</b> ' + esc(ans(c)) + '</p><p><b>Clasificación correcta:</b> ' + esc(CAT_LABEL[c.category]) + ' · dificultad ' + esc(c.difficulty.toLowerCase()) + '</p>' +
+        '<p><b>Explicación:</b> ' + esc(c.why) + '</p>' + LEGEND + '<div class="review-card">' + applyMarks(renderCase(c, true), c.marks) + '</div><ul>' + c.clues.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul><p><b>Recomendación:</b> ' + esc(c.realLife) + '</p></details>'; }).join('')).join('') +
+    '<div class="stack-btns"><button class="btn pri block" data-close="review">Volver</button></div>';
+  openScreen('review');
+}
+
+/* =========================================================
+   9. INTERFAZ: PANTALLAS, DIÁLOGOS, AVISOS, AUDIO
+   ========================================================= */
+const stack = [];
+let lastFocus = [];
+function top(){ return stack[stack.length-1]; }
+let cutscene = null;
+function isPlaying(){ return stack.length === 0 && !DLG.open && !cutscene; }
+function openScreen(id){
+  const el = document.getElementById(id); if (!el) return;
+  const i = stack.indexOf(id); if (i >= 0) stack.splice(i, 1);
+  lastFocus.push(document.activeElement);
+  clearTimeout(toastT); $('#toast').classList.remove('on');
+  stack.push(id); el.style.zIndex = 20 + stack.length*2; el.classList.add('on'); el.scrollTop = 0;
+  if (id === 'pause') $('#pFinal').hidden = !allDone();
+  if (id === 'settings') syncSettingsUI();
+  if (id !== 'term'){ const f = el.querySelector('button,select,input'); if (f) focusLater(f); }
+  refreshModes();
+}
+function closeScreen(id){
+  const el = document.getElementById(id); const i = stack.lastIndexOf(id);
+  if (i >= 0) stack.splice(i, 1);
+  el.classList.remove('on');
+  const f = lastFocus.pop(); if (f && f.focus && document.body.contains(f)) try{ f.focus({preventScroll:true}); }catch(_){}
+  if (id === 'notes' && pendingAfterNotes){ const fn = pendingAfterNotes; pendingAfterNotes = null; fn(); }
+  refreshModes();
+}
+function closeAll(){ while (stack.length) { const id = stack.pop(); document.getElementById(id).classList.remove('on'); } lastFocus = []; T.token++; T.phase = null; closeInspect(); refreshModes(); }
+function refreshModes(){
+  const p = isPlaying();
+  document.body.classList.toggle('playing', p);
+  if (!p){ for (const k in keys) keys[k] = false; resetJoy(); }
+  updateHUD();
+}
+function focusLater(sel){ setTimeout(() => { const el = typeof sel === 'string' ? $(sel) : sel; if (el && el.focus) try{ el.focus({preventScroll:true}); }catch(_){} }, 30); }
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { sfx('blip'); closeScreen(b.dataset.close); }));
+
+let lastHudH = -1;
+function objectiveText(){
+  const dm = stationDone('mensajes'), da = stationDone('apps');
+  if (dm && da) return 'Turno completo. Habla con Marta para ver el informe.';
+  if (dm) return 'Ve a la Computadora 2 (Centro de Aplicaciones), junto a la impresora.';
+  if (da) return 'Ve a la Computadora 1 (Centro de Mensajes), a la izquierda.';
+  if (S.progress.mensajes || S.progress.apps) return 'Termina la misión que empezaste o prueba la otra computadora.';
+  return 'Revisa una computadora: Mensajes (izquierda) o Aplicaciones (derecha).';
+}
+function updateHUD(){
+  const sec = S.security, col = sec >= 70 ? '#5cc98a' : sec >= 40 ? '#f2c14e' : '#ef7b7b';
+  $('#hHits b').textContent = hits(); $('#hSecN').textContent = sec; $('#hSecN').style.color = col;
+  const n = Math.round(sec / 10);
+  $('#hSegs').innerHTML = Array.from({length:10}, (_, i) => '<i' + (i < n ? ' style="background:' + (i < 3 && sec < 40 ? '#ef7b7b' : col) + '"' : '') + '></i>').join('');
+  $('#hObjT').textContent = objectiveText();
+  const hh = $('#hud').offsetHeight; if (hh !== lastHudH){ lastHudH = hh; resize(); }
+}
+let toastT = 0, capT = 0;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 4200); }
+function caption(msg){
+  if (top() === 'term'){ const sub = $('#tSub'); sub.textContent = '[' + msg + ']'; clearTimeout(capT); capT = setTimeout(() => { if (top() === 'term' && T.st) renderHeader(); }, 1600); return; }
+  const t = $('#cap'); t.textContent = '[' + msg + ']'; t.classList.add('on'); clearTimeout(capT); capT = setTimeout(() => t.classList.remove('on'), 1600); }
+
+/* Diálogo con Marta */
+const DLG = { lines:[], i:0, onEnd:null, open:false };
+function showDialog(lines, onEnd){
+  DLG.lines = lines; DLG.i = 0; DLG.onEnd = onEnd || null; DLG.open = true;
+  $('#dlg').classList.add('on'); renderDlg(); refreshModes(); focusLater('#dlgNext');
+}
+function renderDlg(){ const L = DLG.lines[DLG.i]; $('#dlgWho').textContent = L.who || 'Marta · analista sénior'; $('#dlgText').textContent = L.text;
+  $('#dlgNext').textContent = DLG.i < DLG.lines.length-1 ? 'Siguiente ▶' : (L.end || 'Entendido'); }
+function nextDlg(){ if (!DLG.open) return; sfx('blip'); DLG.i++; if (DLG.i >= DLG.lines.length) endDlg(); else renderDlg(); }
+function endDlg(){ if (!DLG.open) return; DLG.open = false; $('#dlg').classList.remove('on'); const f = DLG.onEnd; DLG.onEnd = null; refreshModes(); if (f) f(); }
+$('#dlgNext').onclick = nextDlg; $('#dlgSkip').onclick = endDlg;
+
+function drawAvatar(){
+  const c = $('#dlgAv'), g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.clearRect(0,0,16,16);
+  R(g,0,0,16,16,'#13213a'); R(g,4,3,8,9,PAL_MARTA.skin); R(g,4,2,8,3,PAL_MARTA.hair); R(g,3,3,1,6,PAL_MARTA.hair); R(g,12,3,1,6,PAL_MARTA.hair); R(g,7,0,3,2,PAL_MARTA.hair);
+  R(g,5,6,3,1,'#2b2b2b'); R(g,9,6,3,1,'#2b2b2b'); R(g,6,7,1,1,'#1b1b22'); R(g,10,7,1,1,'#1b1b22'); R(g,7,10,3,1,'#8a4a3a');
+  R(g,2,12,12,4,PAL_MARTA.shirt); R(g,7,12,2,4,'#f8f6f1');
+  const l = $('#logoCv').getContext('2d'); l.imageSmoothingEnabled = false;
+  const sh = ['000011111100000','000111111110000','001122222211000','011222333221100','011223313322110','011223111322110','011222313222110','011222333222110','001122222221100','000112222211000','000011222110000','000001111100000'];
+  sh.forEach((row,y) => [...row].forEach((v,x) => { if (v !== '0'){ l.fillStyle = v === '1' ? '#2ec4b6' : v === '2' ? '#0f3b37' : '#f2c14e'; l.fillRect(x+1, y+3, 1, 1); } }));
+  const hs = $('#hShield').getContext('2d');
+  sh.forEach((row,y) => [...row].forEach((v,x) => { if (v !== '0'){ hs.fillStyle = v === '1' ? '#5cc98a' : v === '2' ? '#0f3b37' : '#f2c14e'; hs.fillRect(x, y+1, 1, 1); } }));
+}
+
+/* Audio corto generado (WebAudio); sin sonidos constantes */
+let AC = null;
+function ac(){ if (!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ AC = null; } } if (AC && AC.state === 'suspended') AC.resume().catch(()=>{}); return AC; }
+function tone(f, d, type, v, slide, delay){
+  if (settings.muted || settings.volume <= 0) return; const a = ac(); if (!a) return;
+  const t = a.currentTime + (delay || 0), o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'square'; o.frequency.setValueAtTime(f, t); if (slide) o.frequency.linearRampToValueAtTime(Math.max(40, f + slide), t + d);
+  const vol = Math.max(0.0002, (v || .1) * settings.volume / 100);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.03);
+}
+const SFX = { blip(){ tone(660,.06,'square',.06); }, open(){ tone(440,.08,'square',.07); tone(880,.1,'square',.06,0,.07); },
+  swipe(){ tone(320,.16,'triangle',.1,-200); }, good(){ tone(660,.1,'square',.07); tone(990,.18,'square',.07,0,.1); },
+  bad(){ tone(220,.25,'sawtooth',.06,-70); }, note(){ tone(880,.08,'sine',.12); tone(1320,.14,'sine',.1,0,.09); } };
+function sfx(name, cap){ try{ SFX[name] && SFX[name](); }catch(e){} if (cap && settings.captions) caption(cap); }
+
+/* Configuración */
+function syncSettingsUI(){
+  $('#sVol').value = settings.volume; $('#sMute').checked = settings.muted; $('#sCap').checked = settings.captions;
+  $('#sRed').checked = settings.reduce; $('#sTouch').value = settings.touch;
+  $('#sSave').textContent = store.ok ? 'El progreso se guarda en este navegador (sin datos personales).' : 'Este navegador no permite guardar: el juego funciona, pero el progreso no se conservará al cerrar.';
+}
+$('#sVol').oninput = e => { settings.volume = +e.target.value; saveSettings(); };
+$('#sVol').onchange = () => sfx('blip');
+$('#sMute').onchange = e => { settings.muted = e.target.checked; saveSettings(); };
+$('#sCap').onchange = e => { settings.captions = e.target.checked; saveSettings(); };
+$('#sRed').onchange = e => { settings.reduce = e.target.checked; document.body.classList.toggle('reduce', settings.reduce); saveSettings(); };
+$('#sTouch').onchange = e => { settings.touch = e.target.value; saveSettings(); resize(); updatePrompt(); };
+
+/* Menú y flujo */
+function refreshMenu(){ $('#mCont').hidden = !hasSave(); $('#mConfirm').hidden = true; }
+function goMenu(){ saveGame(); closeAll(); refreshMenu(); openScreen('menu'); }
+$('#mNew').onclick = () => { sfx('blip'); if (hasSave()){ $('#mConfirm').hidden = false; focusLater('#mNo'); } else startNewGame(); };
+$('#mNo').onclick = () => { $('#mConfirm').hidden = true; focusLater('#mNew'); };
+$('#mYes').onclick = () => startNewGame();
+$('#mCont').onclick = () => { sfx('blip'); if (loadGame()){ closeAll(); updateHUD(); updatePrompt(); toast('Partida recuperada: ' + hits() + ' aciertos, seguridad ' + S.security + '.'); } };
+$('#mHow').onclick = () => openScreen('howto');
+$('#mSet').onclick = () => openScreen('settings');
+$('#pResume').onclick = () => closeScreen('pause');
+$('#pNotes').onclick = () => openScreen('notes');
+$('#pFinal').onclick = () => openFinal();
+$('#pHow').onclick = () => openScreen('howto');
+$('#pSet').onclick = () => openScreen('settings');
+$('#pMenu').onclick = goMenu;
+$('#hPause').onclick = () => { if (isPlaying()) openScreen('pause'); };
+$('#hNotes').onclick = () => { if (isPlaying()){ sfx('blip'); openScreen('notes'); } };
+$('#tBack').onclick = () => { sfx('blip'); closeTerminal(); };
+$('#tPause').onclick = () => openScreen('pause');
+
+let pendingAfterNotes = null;
+function startNewGame(){
+  S = newState(); player.x = S.player.x; player.y = S.player.y; player.dir = 'up';
+  store.set(SAVE_KEY, S); closeAll(); updateHUD();
+  player.y = 292; player.x = 112;
+  cutscene = { t:0, dur: settings.reduce ? 0.01 : 1.4, from:292, to:268, done: () => showDialog([
+    {text:'¡Te damos la bienvenida al Nodo Faro, Alex! Soy Marta. Esta noche el turno es tuyo.'},
+    {text:'Protegemos a pequeñas organizaciones de Bahía Clara. Hoy entraron mensajes, anuncios y alertas que nadie ha revisado.'},
+    {text:'Hay dos computadoras: el Centro de Mensajes, a la izquierda, y el Centro de Aplicaciones, junto a la impresora. Empieza por la que quieras.'},
+    {text:'Te dejé la Carpeta del turno con datos de la oficina. Los detalles importan: muchos engaños se ven perfectos.', end:'Abrir la carpeta'}
+  ], () => {
+    S.introDone = true; saveGame();
+    pendingAfterNotes = () => toast(touchOn() ? 'Usa el joystick para moverte y el botón Interactuar al acercarte a algo.' : 'Muévete con W A S D o las flechas. Pulsa E para interactuar.');
+    openScreen('notes');
+  }) };
+  refreshModes();
+}
+
+/* Teclado */
+const KEYMAP = { KeyW:'up', ArrowUp:'up', KeyS:'down', ArrowDown:'down', KeyA:'left', ArrowLeft:'left', KeyD:'right', ArrowRight:'right' };
+window.addEventListener('keydown', e => {
+  ac();
+  const k = e.code;
+  if (DLG.open){ if ((k === 'Enter' || k === 'Space' || k === 'KeyE') && !e.repeat){ e.preventDefault(); nextDlg(); } else if (k === 'Escape') endDlg(); return; }
+  const tp = top();
+  if (tp === 'term'){
+    if (inspOpen()){ if (k === 'Escape' || k === 'KeyI' || k === 'KeyG'){ e.preventDefault(); closeInspect(); } return; }
+    if (k === 'Escape' || k === 'KeyP'){ e.preventDefault(); openScreen('pause'); return; }
+    if (T.phase === 'card' && !e.repeat){
+      if (k === 'ArrowLeft'){ e.preventDefault(); decide('sospechoso'); }
+      else if (k === 'ArrowRight'){ e.preventDefault(); decide('legitimo'); }
+      else if (k === 'KeyI'){ e.preventDefault(); openInspect(); }
+      else if (k === 'KeyG'){ e.preventDefault(); openGuide(); }
+    }
+    return;
+  }
+  if (tp){ if (k === 'Escape' && tp !== 'menu'){ e.preventDefault(); closeScreen(tp); } else if (k === 'KeyP' && tp === 'pause') closeScreen('pause'); return; }
+  if (KEYMAP[k]){ keys[KEYMAP[k]] = true; e.preventDefault(); }
+  else if ((k === 'KeyE' || k === 'Enter' || k === 'Space') && !e.repeat){ e.preventDefault(); interact(); }
+  else if (k === 'Escape' || k === 'KeyP'){ e.preventDefault(); openScreen('pause'); }
+  else if (k === 'KeyN'){ openScreen('notes'); }
+});
+window.addEventListener('keyup', e => { if (KEYMAP[e.code]) keys[KEYMAP[e.code]] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; resetJoy(); });
+
+/* Joystick táctil y botón de interactuar */
+const joyEl = $('#joy'), knob = $('#knob');
+function resetJoy(){ joy.x = 0; joy.y = 0; joy.id = null; knob.style.transform = ''; }
+function joyMove(e){
+  let dx = e.clientX - joy.cx, dy = e.clientY - joy.cy; const d = Math.hypot(dx, dy);
+  if (d > joy.r){ dx *= joy.r/d; dy *= joy.r/d; }
+  knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  let nx = dx/joy.r, ny = dy/joy.r; if (Math.hypot(nx, ny) < 0.18){ nx = 0; ny = 0; }
+  joy.x = nx; joy.y = ny;
+}
+joyEl.addEventListener('pointerdown', e => { e.preventDefault(); ac(); touchDetected = true; joy.id = e.pointerId; try{ joyEl.setPointerCapture(e.pointerId); }catch(_){}
+  const b = joyEl.getBoundingClientRect(); joy.cx = b.left + b.width/2; joy.cy = b.top + b.height/2; joyMove(e); });
+joyEl.addEventListener('pointermove', e => { if (e.pointerId === joy.id){ e.preventDefault(); joyMove(e); } });
+['pointerup','pointercancel','lostpointercapture'].forEach(ev => joyEl.addEventListener(ev, e => { if (e.pointerId === joy.id) resetJoy(); }));
+$('#act').addEventListener('click', () => interact());
+document.addEventListener('pointerdown', e => { ac(); if (e.pointerType === 'touch' && !touchDetected && settings.touch === 'auto'){ touchDetected = true; resize(); updatePrompt(); } }, {passive:true});
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+/* Ciclo de vida */
+document.addEventListener('visibilitychange', () => { if (document.hidden){ saveGame(); if (isPlaying() && S.introDone) openScreen('pause'); } });
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 200));
+if (window.visualViewport) visualViewport.addEventListener('resize', resize);
+
+let last = performance.now(), lastRender = 0, saveTimer = 0;
+function loop(now){
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (cutscene){
+    gameTime += dt; cutscene.t += dt; const k = Math.min(1, cutscene.t / cutscene.dur);
+    player.dir = 'up'; player.moving = k < 1; player.anim += dt; player.y = cutscene.from + (cutscene.to - cutscene.from) * k;
+    render();
+    if (k >= 1){ const f = cutscene.done; cutscene = null; player.moving = false; f(); }
+  } else if (isPlaying()){
+    gameTime += dt; update(dt); render();
+    saveTimer += dt; if (saveTimer > 4 && S.introDone){ saveTimer = 0; saveGame(); }
+  } else if (now - lastRender > 250){
+    gameTime += 0.25; lastRender = now; render();  // fondo animado a baja frecuencia
+  }
+  requestAnimationFrame(loop);
+}
+
+/* Inicio */
+$('#notesList').innerHTML = NOTES.map(([t,v]) => '<li><b>' + t + ':</b> ' + v + '</li>').join('');
+document.body.classList.toggle('reduce', settings.reduce);
+buildWorld(); drawAvatar(); resize(); updateHUD(); updatePrompt(); refreshMenu();
+openScreen('menu');
+requestAnimationFrame(loop);
+window.__game = { markCheck: c => applyMarks(renderCase(c, true), c.marks), get S(){ return S; }, player, T, CASES, finalCategory, evaluate, stack, hits };
+})();
+</script>
+</body>
+</html>
